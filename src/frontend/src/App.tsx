@@ -12,6 +12,19 @@ import type {
   QuizQuestionForStudent,
   StudentProgress,
 } from "./backend.d";
+import {
+  COMPLETE_MESSAGES,
+  CORRECT_MESSAGES,
+  CelebrationOverlay,
+  WRONG_MESSAGES,
+  pickRandom,
+  useCelebration,
+} from "./components/CelebrationOverlay";
+import {
+  CertificateModal,
+  getEarnedCertificates,
+  saveCertificate,
+} from "./components/CertificateModal";
 import { useActor } from "./hooks/useActor";
 
 import {
@@ -73,8 +86,8 @@ import {
   Users,
 } from "lucide-react";
 
-const STUDENT_NAME_KEY = "learnflow_student_name";
-const PROFILE_KEY = "learnflow_student_profile";
+const STUDENT_NAME_KEY = "eduloom_student_name";
+const PROFILE_KEY = "eduloom_student_profile";
 
 interface StudentProfile {
   name: string;
@@ -194,7 +207,7 @@ function EntryScreen({
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center page-gradient-entry px-4 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-primary/8 blur-3xl" />
@@ -204,44 +217,125 @@ function EntryScreen({
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-lg animate-fade-up">
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-white" />
+      <div className="relative z-10 w-full max-w-2xl animate-fade-up">
+        {/* Hero image — large and proud */}
+        <div className="flex justify-center mb-6">
+          <div
+            className="relative rounded-3xl overflow-hidden shadow-2xl"
+            style={{
+              background: "oklch(0.96 0.04 290)",
+              padding: "6px",
+              boxShadow:
+                "0 20px 60px oklch(0.55 0.14 290 / 0.25), 0 0 0 1px oklch(0.85 0.08 290)",
+            }}
+          >
+            <img
+              src="/assets/generated/classroom-hero.dim_800x500.png"
+              alt="EduLoom classroom"
+              className="w-full max-w-md h-auto object-contain rounded-2xl block"
+            />
+            {/* Floating badge */}
+            <div
+              className="absolute bottom-4 left-4 px-3 py-1.5 rounded-full text-xs font-ui font-semibold flex items-center gap-1.5 shadow-md"
+              style={{
+                background: "oklch(0.99 0.01 290)",
+                color: "oklch(0.38 0.14 290)",
+                border: "1px solid oklch(0.85 0.08 290)",
+              }}
+            >
+              <Sparkles className="h-3 w-3" /> Self-paced · Interactive · Fun
             </div>
           </div>
-          <h1 className="font-display text-5xl font-bold tracking-tight text-foreground">
-            Learn<span className="text-primary">Flow</span>
+        </div>
+
+        {/* Brand heading */}
+        <div className="text-center mb-8">
+          <h1
+            className="font-display font-bold tracking-tight leading-none mb-2"
+            style={{ fontSize: "clamp(2.8rem, 8vw, 4.5rem)" }}
+          >
+            <span style={{ color: "oklch(0.3 0.14 290)" }}>Edu</span>
+            <span
+              style={{
+                background:
+                  "linear-gradient(135deg, oklch(0.62 0.18 290), oklch(0.65 0.16 220))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              Loom
+            </span>
           </h1>
-          <p className="text-muted-foreground mt-2 text-lg font-ui">
-            Your self-paced learning companion
+          <p
+            className="font-ui text-base"
+            style={{ color: "oklch(0.5 0.06 290)" }}
+          >
+            weaving learning together — a self-paced learning companion
           </p>
         </div>
 
         {step === "pick" ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
+            <p
+              className="text-center text-xs font-ui font-semibold uppercase tracking-widest mb-4"
+              style={{ color: "oklch(0.58 0.08 290)" }}
+            >
+              How would you like to continue?
+            </p>
+
             {/* Student card */}
             <button
               type="button"
               onClick={() => setStep("name")}
-              className="w-full group text-left p-5 rounded-2xl border-2 border-border bg-card hover:border-primary hover:shadow-glow transition-all duration-200"
+              className="w-full group text-left rounded-2xl border-2 transition-all duration-200 overflow-hidden"
+              style={{
+                background:
+                  "linear-gradient(135deg, oklch(0.96 0.06 290) 0%, oklch(0.95 0.05 260) 100%)",
+                borderColor: "oklch(0.83 0.1 290)",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.transform =
+                  "translateY(-2px)";
+                (e.currentTarget as HTMLElement).style.boxShadow =
+                  "0 12px 32px oklch(0.62 0.16 290 / 0.28)";
+                (e.currentTarget as HTMLElement).style.borderColor =
+                  "oklch(0.62 0.16 290)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = "";
+                (e.currentTarget as HTMLElement).style.boxShadow = "";
+                (e.currentTarget as HTMLElement).style.borderColor =
+                  "oklch(0.83 0.1 290)";
+              }}
               data-ocid="entry.student.button"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                  <GraduationCap className="h-7 w-7 text-primary" />
+              <div className="flex items-center gap-5 p-5">
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 text-3xl shadow-inner"
+                  style={{ background: "oklch(0.92 0.1 290)" }}
+                >
+                  🎒
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold text-foreground text-lg font-ui">
-                    I'm a Student
+                  <div
+                    className="font-display font-bold text-xl"
+                    style={{ color: "oklch(0.28 0.14 290)" }}
+                  >
+                    I&apos;m a Student
                   </div>
-                  <div className="text-sm text-muted-foreground mt-0.5">
-                    Explore courses, take quizzes, track your progress
+                  <div
+                    className="text-sm font-ui mt-0.5"
+                    style={{ color: "oklch(0.5 0.06 290)" }}
+                  >
+                    Explore courses · Take quizzes · Earn certificates
                   </div>
                 </div>
-                <ChevronLeft className="h-5 w-5 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ background: "oklch(0.62 0.16 290)", color: "white" }}
+                >
+                  <ChevronLeft className="h-4 w-4 rotate-180" />
+                </div>
               </div>
             </button>
 
@@ -249,43 +343,55 @@ function EntryScreen({
             <button
               type="button"
               onClick={() => setStep("teacher-login")}
-              className="w-full group text-left p-5 rounded-2xl border-2 border-border bg-card transition-all duration-200"
-              style={
-                {
-                  "--hover-border": "oklch(0.62 0.14 52)",
-                } as React.CSSProperties
-              }
+              className="w-full group text-left rounded-2xl border-2 transition-all duration-200 overflow-hidden"
+              style={{
+                background:
+                  "linear-gradient(135deg, oklch(0.96 0.06 52) 0%, oklch(0.95 0.05 30) 100%)",
+                borderColor: "oklch(0.83 0.09 52)",
+              }}
               onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.transform =
+                  "translateY(-2px)";
+                (e.currentTarget as HTMLElement).style.boxShadow =
+                  "0 12px 32px oklch(0.65 0.14 52 / 0.28)";
                 (e.currentTarget as HTMLElement).style.borderColor =
                   "oklch(0.62 0.14 52)";
-                (e.currentTarget as HTMLElement).style.boxShadow =
-                  "0 0 24px oklch(0.62 0.14 52 / 0.15)";
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = "";
+                (e.currentTarget as HTMLElement).style.transform = "";
                 (e.currentTarget as HTMLElement).style.boxShadow = "";
+                (e.currentTarget as HTMLElement).style.borderColor =
+                  "oklch(0.83 0.09 52)";
               }}
               data-ocid="entry.teacher.button"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-5 p-5">
                 <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-                  style={{ background: "oklch(0.62 0.14 52 / 0.12)" }}
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 text-3xl shadow-inner"
+                  style={{ background: "oklch(0.92 0.09 52)" }}
                 >
-                  <BookOpen
-                    className="h-7 w-7"
-                    style={{ color: "oklch(0.62 0.14 52)" }}
-                  />
+                  📚
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold text-foreground text-lg font-ui">
+                  <div
+                    className="font-display font-bold text-xl"
+                    style={{ color: "oklch(0.28 0.1 52)" }}
+                  >
                     I&apos;m a Teacher
                   </div>
-                  <div className="text-sm text-muted-foreground mt-0.5">
-                    Create courses, manage lessons, track students
+                  <div
+                    className="text-sm font-ui mt-0.5"
+                    style={{ color: "oklch(0.5 0.06 52)" }}
+                  >
+                    Create courses · Upload materials · Track progress
                   </div>
                 </div>
-                <ChevronLeft className="h-5 w-5 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ background: "oklch(0.62 0.14 52)", color: "white" }}
+                >
+                  <ChevronLeft className="h-4 w-4 rotate-180" />
+                </div>
               </div>
             </button>
           </div>
@@ -418,15 +524,27 @@ function StudentConsole({
     const saved = localStorage.getItem(PROFILE_KEY);
     return saved ? JSON.parse(saved) : null;
   });
+  const [certModal, setCertModal] = useState<{
+    studentName: string;
+    courseName: string;
+    courseId: string;
+    earnedAt: string;
+  } | null>(null);
 
   const avatarColor = profile?.avatarColor ?? AVATAR_COLORS[0];
   const avatarInitials =
     profile?.avatarInitials ?? getInitials(studentName || "S");
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen page-gradient-student flex flex-col">
       {/* Student Navbar */}
-      <header className="sticky top-0 z-40 border-b bg-white/90 backdrop-blur-md shadow-xs">
+      <header
+        className="sticky top-0 z-40 border-b backdrop-blur-xl shadow-sm"
+        style={{
+          background: "oklch(0.98 0.01 290 / 0.92)",
+          borderColor: "oklch(0.88 0.04 290)",
+        }}
+      >
         <div className="mx-auto max-w-6xl px-4 h-14 flex items-center gap-4">
           <button
             type="button"
@@ -438,7 +556,7 @@ function StudentConsole({
               <Sparkles className="h-3.5 w-3.5 text-white" />
             </div>
             <span>
-              Learn<span className="text-primary">Flow</span>
+              Edu<span className="text-primary">Loom</span>
             </span>
           </button>
 
@@ -485,6 +603,20 @@ function StudentConsole({
                 <User className="h-4 w-4" /> Profile
               </span>
             </button>
+            <button
+              type="button"
+              onClick={() => setView({ page: "certificates" as any })}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium font-ui transition-colors ${
+                (view as any).page === "certificates"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+              data-ocid="student.nav.certificates.link"
+            >
+              <span className="flex items-center gap-1.5">
+                <Award className="h-4 w-4" /> Certificates
+              </span>
+            </button>
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
@@ -507,7 +639,11 @@ function StudentConsole({
 
       <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-8">
         {view.page === "dashboard" && (
-          <StudentDashboard actor={actor} setView={setView} />
+          <StudentDashboard
+            actor={actor}
+            setView={setView}
+            studentName={studentName}
+          />
         )}
         {view.page === "explore" && (
           <ExplorePage actor={actor} setView={setView} />
@@ -528,6 +664,9 @@ function StudentConsole({
             onBack={() => setView({ page: "dashboard" })}
           />
         )}
+        {(view as any).page === "certificates" && (
+          <StudentCertificatesPage studentName={studentName} />
+        )}
         {view.page === "lesson" && (
           <LessonPage
             actor={actor}
@@ -535,9 +674,29 @@ function StudentConsole({
             courseId={view.courseId}
             setView={setView}
             isTeacher={false}
+            studentName={studentName}
+            onCertificateEarned={(courseId, courseName) => {
+              saveCertificate({
+                studentName,
+                courseName,
+                courseId: String(courseId),
+              });
+              setCertModal({
+                studentName,
+                courseName,
+                courseId: String(courseId),
+                earnedAt: new Date().toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }),
+              });
+            }}
           />
         )}
       </main>
+
+      <CertificateModal cert={certModal} onClose={() => setCertModal(null)} />
 
       <footer className="border-t py-4 text-center text-xs text-muted-foreground font-ui">
         © {new Date().getFullYear()}. Built with ♥ using{" "}
@@ -601,7 +760,12 @@ function StudentProfilePage({
   return (
     <div className="max-w-lg mx-auto space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-bold">My Profile</h1>
+        <h1
+          className="font-display text-3xl font-bold"
+          style={{ color: "oklch(0.35 0.14 290)" }}
+        >
+          My Profile
+        </h1>
         <p className="text-muted-foreground font-ui mt-1">
           Manage your personal details and learning goals
         </p>
@@ -767,13 +931,13 @@ function TeacherConsole({
   const [view, setView] = useState<TeacherView>({ page: "dashboard" });
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen page-gradient-teacher flex flex-col">
       {/* Teacher Navbar — warm dark surface */}
       <header
         className="sticky top-0 z-40 shadow-sm"
         style={{
-          background: "oklch(0.16 0.025 52)",
-          borderBottom: "1px solid oklch(0.25 0.04 52)",
+          background: "oklch(0.97 0.03 52)",
+          borderBottom: "1px solid oklch(0.87 0.05 52)",
         }}
       >
         <div className="mx-auto max-w-6xl px-4 h-14 flex items-center gap-4">
@@ -781,7 +945,7 @@ function TeacherConsole({
             type="button"
             onClick={() => setView({ page: "dashboard" })}
             className="flex items-center gap-2 font-display font-bold text-xl"
-            style={{ color: "oklch(0.98 0.005 52)" }}
+            style={{ color: "oklch(0.22 0.05 52)" }}
             data-ocid="teacher.nav.logo.link"
           >
             <div
@@ -791,7 +955,7 @@ function TeacherConsole({
               <Sparkles className="h-3.5 w-3.5 text-white" />
             </div>
             <span>
-              Learn<span style={{ color: "oklch(0.75 0.14 52)" }}>Flow</span>
+              Edu<span style={{ color: "oklch(0.65 0.14 52)" }}>Loom</span>
             </span>
           </button>
 
@@ -807,8 +971,8 @@ function TeacherConsole({
                     : "transparent",
                 color:
                   view.page === "dashboard"
-                    ? "oklch(0.85 0.1 52)"
-                    : "oklch(0.65 0.03 52)",
+                    ? "oklch(0.35 0.12 52)"
+                    : "oklch(0.5 0.06 52)",
               }}
               data-ocid="teacher.nav.dashboard.link"
             >
@@ -827,8 +991,8 @@ function TeacherConsole({
                     : "transparent",
                 color:
                   view.page === "materials"
-                    ? "oklch(0.85 0.1 52)"
-                    : "oklch(0.65 0.03 52)",
+                    ? "oklch(0.35 0.12 52)"
+                    : "oklch(0.5 0.06 52)",
               }}
               data-ocid="teacher.nav.materials.link"
             >
@@ -855,7 +1019,7 @@ function TeacherConsole({
               size="sm"
               onClick={onLogout}
               className="text-sm font-ui"
-              style={{ color: "oklch(0.65 0.03 52)" }}
+              style={{ color: "oklch(0.5 0.06 52)" }}
               data-ocid="teacher.nav.sign_out.button"
             >
               <LogOut className="h-4 w-4 mr-1" /> Sign Out
@@ -916,9 +1080,9 @@ interface Material {
   activitiesGenerated: boolean;
 }
 
-const MATERIALS_KEY = "learnflow_materials";
+const MATERIALS_KEY = "eduloom_materials";
 
-const LOCAL_COURSES_KEY = "learnflow_local_courses";
+const LOCAL_COURSES_KEY = "eduloom_local_courses";
 
 interface LocalCourse {
   id: number;
@@ -956,6 +1120,81 @@ function updateLocalCourse(id: number, updates: Partial<LocalCourse>): void {
 function deleteLocalCourse(id: number): void {
   const courses = getLocalCourses().filter((c) => c.id !== id);
   localStorage.setItem(LOCAL_COURSES_KEY, JSON.stringify(courses));
+}
+
+// ─── Local Lessons Storage ────────────────────────────────────────────────────
+const LOCAL_LESSONS_KEY = "eduloom_local_lessons";
+
+interface LocalLesson {
+  id: number;
+  courseId: number;
+  title: string;
+  content: string;
+  orderIndex: number;
+  type?: "Activity" | "Worksheet" | "LSRW" | "Game" | "Exercise" | "Lesson";
+}
+
+function getLocalLessons(): LocalLesson[] {
+  try {
+    const stored = localStorage.getItem(LOCAL_LESSONS_KEY);
+    if (stored) return JSON.parse(stored) as LocalLesson[];
+  } catch {}
+  return [];
+}
+
+function saveLocalLessons(lessons: LocalLesson[]): void {
+  localStorage.setItem(LOCAL_LESSONS_KEY, JSON.stringify(lessons));
+}
+
+// ─── Local Lesson Completion Storage ─────────────────────────────────────────
+const LOCAL_COMPLETED_KEY = "eduloom_completed_lessons";
+
+function getCompletedLocalLessons(): Set<number> {
+  try {
+    const s = localStorage.getItem(LOCAL_COMPLETED_KEY);
+    return new Set(s ? JSON.parse(s) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function markLocalLessonComplete(id: number) {
+  const set = getCompletedLocalLessons();
+  set.add(id);
+  localStorage.setItem(LOCAL_COMPLETED_KEY, JSON.stringify([...set]));
+}
+
+function detectTypeFromTitle(title: string): LocalLesson["type"] {
+  if (title.startsWith("Activity")) return "Activity";
+  if (title.startsWith("Worksheet")) return "Worksheet";
+  if (title.startsWith("LSRW")) return "LSRW";
+  if (title.startsWith("Game")) return "Game";
+  if (title.startsWith("Exercise")) return "Exercise";
+  return "Lesson";
+}
+
+// ─── Local Enrollments Storage ────────────────────────────────────────────────
+const LOCAL_ENROLLMENTS_KEY = "eduloom_local_enrollments";
+
+interface LocalEnrollment {
+  courseId: number;
+  enrolledAt: number;
+}
+
+function getLocalEnrollments(): LocalEnrollment[] {
+  try {
+    const stored = localStorage.getItem(LOCAL_ENROLLMENTS_KEY);
+    if (stored) return JSON.parse(stored) as LocalEnrollment[];
+  } catch {}
+  return [];
+}
+
+function saveLocalEnrollment(courseId: number): void {
+  const enrollments = getLocalEnrollments();
+  if (!enrollments.find((e) => e.courseId === courseId)) {
+    enrollments.push({ courseId, enrolledAt: Date.now() });
+    localStorage.setItem(LOCAL_ENROLLMENTS_KEY, JSON.stringify(enrollments));
+  }
 }
 
 const DEFAULT_MATERIALS: Material[] = [
@@ -1073,7 +1312,7 @@ function MaterialsPage({
   }
 
   async function handleGenerate() {
-    if (!actor || !selectedMaterialId || !selectedCourseId) return;
+    if (!selectedMaterialId || !selectedCourseId) return;
     const material = materials.find((m) => m.id === selectedMaterialId);
     if (!material) return;
     const course = (courses as CourseWithStats[]).find(
@@ -1314,10 +1553,30 @@ function MaterialsPage({
     ];
 
     try {
-      const res = await actor.batchCreateLessons(course.course.id, allItems);
-      if ("err" in res) {
-        toast.error(res.err);
-        return;
+      const courseNumId = Number(course.course.id);
+      const isBackendCourse = !getLocalCourses().some(
+        (c) => c.id === courseNumId,
+      );
+      if (isBackendCourse && actor) {
+        await actor.batchCreateLessons(
+          course.course.id,
+          allItems.map((item) => ({
+            title: item.title,
+            content: item.content,
+            orderIndex: item.orderIndex,
+          })),
+        );
+      } else {
+        const newLessons: LocalLesson[] = allItems.map((item, i) => ({
+          id: Date.now() + i,
+          courseId: courseNumId,
+          title: item.title,
+          content: item.content,
+          orderIndex: Number(item.orderIndex),
+          type: detectTypeFromTitle(item.title),
+        }));
+        const existing = getLocalLessons();
+        saveLocalLessons([...existing, ...newLessons]);
       }
       saveMaterials(
         materials.map((mat) =>
@@ -1326,6 +1585,9 @@ function MaterialsPage({
             : mat,
         ),
       );
+      queryClient.invalidateQueries({
+        queryKey: ["local-lessons", selectedCourseId],
+      });
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       toast.success(
         `50 learning items created in "${course.course.title}"! (10 each: Activities, Worksheets, LSRW Tasks, Games, Exercises)`,
@@ -1346,13 +1608,13 @@ function MaterialsPage({
       <div>
         <h1
           className="font-display text-3xl font-bold"
-          style={{ color: "oklch(0.98 0.005 52)" }}
+          style={{ color: "oklch(0.22 0.05 52)" }}
         >
           Learning Materials
         </h1>
         <p
           className="mt-1 font-ui text-sm"
-          style={{ color: "oklch(0.65 0.03 52)" }}
+          style={{ color: "oklch(0.5 0.06 52)" }}
         >
           Upload your syllabus and teaching materials to generate LSRW learning
           activities for students
@@ -1412,7 +1674,7 @@ function MaterialsPage({
               className="cursor-pointer px-4 py-2 rounded-lg text-sm font-ui font-semibold transition-colors"
               style={{
                 background: "oklch(0.62 0.14 52)",
-                color: "oklch(0.98 0.005 52)",
+                color: "oklch(0.22 0.05 52)",
               }}
             >
               Browse File
@@ -1447,7 +1709,7 @@ function MaterialsPage({
                   className="rounded-xl p-4 flex items-center gap-4"
                   style={{
                     background: "oklch(0.18 0.025 52)",
-                    border: "1px solid oklch(0.25 0.04 52)",
+                    border: "1px solid oklch(0.87 0.05 52)",
                   }}
                 >
                   <div
@@ -1492,7 +1754,7 @@ function MaterialsPage({
                         className="text-xs font-ui font-semibold"
                         style={{
                           background: "oklch(0.62 0.14 52)",
-                          color: "oklch(0.98 0.005 52)",
+                          color: "oklch(0.22 0.05 52)",
                         }}
                         data-ocid={`teacher.materials.generate.open_modal_button.${idx + 1}`}
                       >
@@ -1523,7 +1785,7 @@ function MaterialsPage({
             className="rounded-xl p-6 space-y-4 sticky top-24"
             style={{
               background: "oklch(0.18 0.025 52)",
-              border: "1px solid oklch(0.25 0.04 52)",
+              border: "1px solid oklch(0.87 0.05 52)",
             }}
           >
             <div className="flex items-center gap-2">
@@ -1545,7 +1807,7 @@ function MaterialsPage({
             </div>
             <p
               className="font-ui text-sm leading-relaxed"
-              style={{ color: "oklch(0.65 0.03 52)" }}
+              style={{ color: "oklch(0.5 0.06 52)" }}
             >
               Upload any PDF (syllabus, notes, textbook chapters). Click{" "}
               <span style={{ color: "oklch(0.75 0.14 52)" }}>
@@ -1559,7 +1821,7 @@ function MaterialsPage({
               and Exercises. All appear as lessons in the course you choose,
               ready for students.
             </p>
-            <Separator style={{ borderColor: "oklch(0.25 0.04 52)" }} />
+            <Separator style={{ borderColor: "oklch(0.87 0.05 52)" }} />
             <div className="space-y-3">
               {[
                 {
@@ -1612,14 +1874,14 @@ function MaterialsPage({
       <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
         <DialogContent
           style={{
-            background: "oklch(0.16 0.025 52)",
-            border: "1px solid oklch(0.25 0.04 52)",
+            background: "oklch(0.97 0.03 52)",
+            border: "1px solid oklch(0.87 0.05 52)",
           }}
         >
           <DialogHeader>
             <DialogTitle
               className="font-display"
-              style={{ color: "oklch(0.98 0.005 52)" }}
+              style={{ color: "oklch(0.22 0.05 52)" }}
             >
               Generate LSRW Activities
             </DialogTitle>
@@ -1627,7 +1889,7 @@ function MaterialsPage({
           <div className="space-y-4 py-2">
             <p
               className="font-ui text-sm"
-              style={{ color: "oklch(0.65 0.03 52)" }}
+              style={{ color: "oklch(0.5 0.06 52)" }}
             >
               Select the course to add 50 learning items to (10 each:
               Activities, Worksheets, LSRW Tasks, Games, Exercises):
@@ -1707,7 +1969,7 @@ function MaterialsPage({
               onClick={() => setGenerateDialogOpen(false)}
               disabled={generating}
               className="font-ui"
-              style={{ color: "oklch(0.65 0.03 52)" }}
+              style={{ color: "oklch(0.5 0.06 52)" }}
               data-ocid="teacher.materials.generate.cancel_button"
             >
               Cancel
@@ -1718,7 +1980,7 @@ function MaterialsPage({
               className="font-ui font-semibold"
               style={{
                 background: "oklch(0.62 0.14 52)",
-                color: "oklch(0.98 0.005 52)",
+                color: "oklch(0.22 0.05 52)",
               }}
               data-ocid="teacher.materials.generate.confirm_button"
             >
@@ -1741,18 +2003,120 @@ function MaterialsPage({
 }
 
 // ─── Student Dashboard ────────────────────────────────────────────────────────
+function StudentCertificatesPage({ studentName }: { studentName: string }) {
+  const certs = getEarnedCertificates().filter(
+    (c) => c.studentName === studentName,
+  );
+  const [selectedCert, setSelectedCert] = useState<
+    import("./components/CertificateModal").CertData | null
+  >(null);
+  return (
+    <div className="space-y-6 max-w-3xl" data-ocid="certificates.section">
+      <div>
+        <h1
+          className="font-display text-3xl font-bold"
+          style={{ color: "oklch(0.35 0.14 290)" }}
+        >
+          My Certificates
+        </h1>
+        <p className="text-muted-foreground font-ui mt-1">
+          Celebrate your learning achievements!
+        </p>
+      </div>
+      {certs.length === 0 ? (
+        <div
+          className="text-center py-16 rounded-2xl border border-dashed card-pastel-lavender"
+          data-ocid="certificates.empty_state"
+        >
+          <div className="text-5xl mb-3">🎓</div>
+          <p
+            className="font-ui font-semibold text-lg"
+            style={{ color: "oklch(0.45 0.1 290)" }}
+          >
+            No certificates yet!
+          </p>
+          <p className="text-muted-foreground font-ui mt-1">
+            Complete all activities in a course to earn your certificate.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {certs.map((cert, i) => (
+            <button
+              type="button"
+              key={cert.courseId}
+              onClick={() => setSelectedCert(cert)}
+              className="rounded-2xl p-5 text-left shadow-sm border-2 hover:shadow-md transition-all"
+              style={{
+                background: "oklch(0.96 0.04 290)",
+                borderColor: "oklch(0.85 0.08 290)",
+              }}
+              data-ocid={`certificates.item.${i + 1}`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">🏆</span>
+                <div>
+                  <p
+                    className="font-display font-bold text-lg"
+                    style={{ color: "oklch(0.35 0.14 290)" }}
+                  >
+                    {cert.courseName}
+                  </p>
+                  <p className="text-sm font-ui text-muted-foreground">
+                    Earned {cert.earnedAt}
+                  </p>
+                </div>
+              </div>
+              <p
+                className="text-sm font-ui font-semibold"
+                style={{ color: "oklch(0.55 0.14 290)" }}
+              >
+                View Certificate →
+              </p>
+            </button>
+          ))}
+        </div>
+      )}
+      <CertificateModal
+        cert={selectedCert}
+        onClose={() => setSelectedCert(null)}
+      />
+    </div>
+  );
+}
+
 function StudentDashboard({
   actor,
   setView,
+  studentName,
 }: {
   actor: ReturnType<typeof useActor>["actor"];
   setView: (v: StudentView) => void;
+  studentName?: string;
 }) {
   const enrolledQuery = useQuery({
     queryKey: ["enrolled"],
-    queryFn: () => actor!.getMyEnrolledCourses(),
+    queryFn: async () => {
+      try {
+        return await actor!.getMyEnrolledCourses();
+      } catch {
+        return [];
+      }
+    },
     enabled: !!actor,
   });
+  const localEnrollmentsQuery = useQuery({
+    queryKey: ["local-enrollments"],
+    queryFn: () => getLocalEnrollments(),
+    staleTime: 0,
+  });
+  const mergedEnrolled = [
+    ...(enrolledQuery.data ?? []),
+    ...(localEnrollmentsQuery.data ?? []).map((e) => ({
+      courseId: BigInt(e.courseId),
+      enrolledAt: BigInt(e.enrolledAt),
+    })),
+  ];
 
   const backendPublishedQuery = useQuery({
     queryKey: ["published-courses"],
@@ -1789,7 +2153,7 @@ function StudentDashboard({
     enabled: !!actor,
   });
 
-  const enrolled = enrolledQuery.data ?? [];
+  const enrolled = mergedEnrolled;
   const courses = coursesQuery.data ?? [];
   const enrolledCourses = enrolled
     .map((e) => {
@@ -1799,20 +2163,70 @@ function StudentDashboard({
     .filter(Boolean) as (CourseWithStats & { enrolledAt: bigint })[];
 
   return (
-    <div className="space-y-8" data-ocid="student.dashboard.section">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold">My Learning</h1>
-          <p className="text-muted-foreground font-ui mt-1">
-            Continue where you left off
+    <div className="space-y-6" data-ocid="student.dashboard.section">
+      {/* Welcome banner */}
+      <div
+        className="relative rounded-3xl overflow-hidden p-6 flex items-center gap-6"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.93 0.08 290) 0%, oklch(0.93 0.07 220) 50%, oklch(0.93 0.07 160) 100%)",
+          border: "1.5px solid oklch(0.84 0.08 290)",
+          boxShadow: "0 4px 24px oklch(0.62 0.16 290 / 0.12)",
+        }}
+      >
+        {/* Text side */}
+        <div className="flex-1 min-w-0">
+          <p
+            className="font-ui text-xs uppercase tracking-widest font-semibold mb-1"
+            style={{ color: "oklch(0.55 0.1 290)" }}
+          >
+            Welcome back 👋
           </p>
+          <h1
+            className="font-display font-bold leading-tight mb-2"
+            style={{
+              fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
+              color: "oklch(0.26 0.14 290)",
+            }}
+          >
+            {studentName ? `Hello, ${studentName}!` : "My Learning"}
+          </h1>
+          <p
+            className="font-ui text-sm mb-4"
+            style={{ color: "oklch(0.45 0.08 290)" }}
+          >
+            Your courses are ready — keep up the great work!
+          </p>
+          <Button
+            onClick={() => setView({ page: "explore" })}
+            data-ocid="student.explore.button"
+            className="font-ui font-semibold shadow-sm"
+            style={{
+              background: "oklch(0.62 0.16 290)",
+              color: "white",
+              boxShadow: "0 4px 14px oklch(0.62 0.16 290 / 0.35)",
+            }}
+          >
+            <BookOpen className="h-4 w-4 mr-2" /> Explore Courses
+          </Button>
         </div>
-        <Button
-          onClick={() => setView({ page: "explore" })}
-          data-ocid="student.explore.button"
-        >
-          <BookOpen className="h-4 w-4 mr-2" /> Explore Courses
-        </Button>
+        {/* Illustration */}
+        <div className="shrink-0 hidden sm:block">
+          <img
+            src="/assets/generated/students-studying.dim_600x400.png"
+            alt="Students studying"
+            className="h-32 w-auto object-contain drop-shadow-md"
+          />
+        </div>
+        {/* Decorative blobs */}
+        <div
+          className="absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-30 pointer-events-none"
+          style={{ background: "oklch(0.78 0.16 220)", filter: "blur(32px)" }}
+        />
+        <div
+          className="absolute -bottom-6 -left-6 w-32 h-32 rounded-full opacity-25 pointer-events-none"
+          style={{ background: "oklch(0.78 0.16 160)", filter: "blur(24px)" }}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -2015,12 +2429,30 @@ function ExplorePage({
 
   const enrolledQuery = useQuery({
     queryKey: ["enrolled"],
-    queryFn: () => actor!.getMyEnrolledCourses(),
+    queryFn: async () => {
+      try {
+        return await actor!.getMyEnrolledCourses();
+      } catch {
+        return [];
+      }
+    },
     enabled: !!actor,
+  });
+  const localEnrollmentsQueryBrowse = useQuery({
+    queryKey: ["local-enrollments"],
+    queryFn: () => getLocalEnrollments(),
+    staleTime: 0,
   });
 
   const enrollMutation = useMutation({
-    mutationFn: (courseId: bigint) => actor!.enrollInCourse(courseId),
+    mutationFn: async (courseId: bigint) => {
+      saveLocalEnrollment(Number(courseId));
+      qc.invalidateQueries({ queryKey: ["local-enrollments"] });
+      // also try backend (non-blocking)
+      try {
+        await actor?.enrollInCourse(courseId);
+      } catch {}
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["enrolled"] });
       toast.success("Enrolled!");
@@ -2028,8 +2460,15 @@ function ExplorePage({
     onError: () => toast.error("Failed to enroll"),
   });
 
+  const mergedEnrolledBrowse = [
+    ...(enrolledQuery.data ?? []),
+    ...(localEnrollmentsQueryBrowse.data ?? []).map((e) => ({
+      courseId: BigInt(e.courseId),
+      enrolledAt: BigInt(e.enrolledAt),
+    })),
+  ];
   const enrolledIds = new Set(
-    (enrolledQuery.data ?? []).map((e) => String(e.courseId)),
+    mergedEnrolledBrowse.map((e) => String(e.courseId)),
   );
 
   return (
@@ -2148,8 +2587,20 @@ function CoursePage({
   });
   const lessonsQuery = useQuery({
     queryKey: ["lessons", String(courseId)],
-    queryFn: () => actor!.getLessons(courseId),
+    queryFn: async () => {
+      try {
+        return await actor!.getLessons(courseId);
+      } catch {
+        return [];
+      }
+    },
     enabled: !!actor,
+  });
+  const localLessonsQuery1 = useQuery({
+    queryKey: ["local-lessons", String(courseId)],
+    queryFn: () =>
+      getLocalLessons().filter((l) => l.courseId === Number(courseId)),
+    staleTime: 0,
   });
   const progressQuery = useQuery({
     queryKey: ["progress", String(courseId)],
@@ -2158,7 +2609,18 @@ function CoursePage({
   });
 
   const cws = (coursesQuery.data ?? []).find((c) => c.course.id === courseId);
-  const lessons = lessonsQuery.data ?? [];
+  const localLessonsRaw1 = localLessonsQuery1.data ?? [];
+  const lessons = [
+    ...(lessonsQuery.data ?? []),
+    ...localLessonsRaw1.map((l) => ({
+      id: BigInt(l.id),
+      courseId: BigInt(l.courseId),
+      title: l.title,
+      content: l.content,
+      orderIndex: BigInt(l.orderIndex),
+      createdAt: BigInt(0),
+    })),
+  ];
 
   return (
     <div className="space-y-6" data-ocid="course.section">
@@ -2315,41 +2777,113 @@ function LessonPage({
   courseId,
   setView,
   isTeacher,
+  studentName: _studentName,
+  onCertificateEarned,
 }: {
   actor: ReturnType<typeof useActor>["actor"];
   lessonId: bigint;
   courseId: bigint;
   setView: (v: StudentView) => void;
   isTeacher: boolean;
+  studentName?: string;
+  onCertificateEarned?: (courseId: bigint, courseName: string) => void;
 }) {
   const qc = useQueryClient();
 
   const lessonsQuery = useQuery({
     queryKey: ["lessons", String(courseId)],
-    queryFn: () => actor!.getLessons(courseId),
+    queryFn: async () => {
+      try {
+        return await actor!.getLessons(courseId);
+      } catch {
+        return [];
+      }
+    },
     enabled: !!actor,
   });
+  const localLessonsQuery2 = useQuery({
+    queryKey: ["local-lessons", String(courseId)],
+    queryFn: () =>
+      getLocalLessons().filter((l) => l.courseId === Number(courseId)),
+    staleTime: 0,
+  });
+
+  const { celebration: lessonCelebration, triggerCelebration } =
+    useCelebration();
+
+  const isLocalLesson = getLocalLessons().some(
+    (l) => l.id === Number(lessonId),
+  );
 
   const completeMutation = useMutation({
-    mutationFn: () => actor!.markLessonComplete(lessonId),
+    mutationFn: async () => {
+      if (isLocalLesson) {
+        markLocalLessonComplete(Number(lessonId));
+        return;
+      }
+      return actor!.markLessonComplete(lessonId);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lesson-complete", String(lessonId)] });
       qc.invalidateQueries({ queryKey: ["progress", String(courseId)] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
-      toast.success("+10 XP! Lesson marked complete.");
+      if (!isLocalLesson) toast.success("+10 XP! Lesson marked complete.");
+      triggerCelebration(pickRandom(COMPLETE_MESSAGES));
+      // Certificate check: if all local lessons for this course are complete, award cert
+      if (isLocalLesson && onCertificateEarned) {
+        const allLessons = getLocalLessons().filter(
+          (l) => l.courseId === Number(courseId),
+        );
+        const justCompleted = getCompletedLocalLessons();
+        justCompleted.add(Number(lessonId));
+        const allDone =
+          allLessons.length > 0 &&
+          allLessons.every((l) => justCompleted.has(l.id));
+        if (allDone) {
+          const localCourse = getLocalCourses().find(
+            (c) => c.id === Number(courseId),
+          );
+          const courseName = localCourse?.title ?? "this course";
+          const certKey = `eduloom_cert_shown_${courseId}`;
+          if (!localStorage.getItem(certKey)) {
+            localStorage.setItem(certKey, "1");
+            onCertificateEarned(courseId, courseName);
+          }
+        }
+      }
     },
   });
 
   const completeQuery = useQuery({
     queryKey: ["lesson-complete", String(lessonId)],
-    queryFn: () => actor!.isLessonComplete(lessonId),
-    enabled: !!actor && !isTeacher,
+    queryFn: () => {
+      if (isLocalLesson)
+        return getCompletedLocalLessons().has(Number(lessonId));
+      return actor!.isLessonComplete(lessonId);
+    },
+    enabled: !isTeacher,
   });
 
-  const lesson = (lessonsQuery.data ?? []).find((l) => l.id === lessonId);
+  const localLessonsRaw2 = localLessonsQuery2.data ?? [];
+  const allLessons2 = [
+    ...(lessonsQuery.data ?? []),
+    ...localLessonsRaw2.map((l) => ({
+      id: BigInt(l.id),
+      courseId: BigInt(l.courseId),
+      title: l.title,
+      content: l.content,
+      orderIndex: BigInt(l.orderIndex),
+      createdAt: BigInt(0),
+    })),
+  ];
+  const lesson = allLessons2.find((l) => l.id === lessonId);
 
   return (
     <div className="space-y-8 max-w-3xl" data-ocid="lesson.section">
+      <CelebrationOverlay
+        visible={lessonCelebration.visible}
+        message={lessonCelebration.message}
+      />
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -2370,12 +2904,21 @@ function LessonPage({
 
       {lesson ? (
         <>
-          <div className="prose-sm max-w-none">
-            <LessonContent content={lesson.content} />
-          </div>
+          {isLocalLesson ? (
+            <InteractiveLessonView
+              lesson={lesson as unknown as LocalLesson}
+              onComplete={() => completeMutation.mutate()}
+              isCompleted={!!completeQuery.data}
+              isPending={completeMutation.isPending}
+            />
+          ) : (
+            <div className="prose-sm max-w-none">
+              <LessonContent content={lesson.content} />
+            </div>
+          )}
 
-          {!isTeacher && (
-            <div className="pt-2">
+          {!isTeacher && !isLocalLesson && (
+            <div className="pt-4">
               {completeQuery.data ? (
                 <div
                   className="flex items-center gap-2 text-green-600 font-medium font-ui"
@@ -2385,14 +2928,18 @@ function LessonPage({
                 </div>
               ) : (
                 <Button
+                  type="button"
+                  size="lg"
+                  className="w-full sm:w-auto bg-violet-500 hover:bg-violet-600 text-white font-semibold text-base"
                   onClick={() => completeMutation.mutate()}
                   disabled={completeMutation.isPending}
                   data-ocid="lesson.complete.button"
+                  aria-label="Complete and submit this lesson"
                 >
                   {completeMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Mark as Complete (+10 XP)
+                  Complete & Submit
                 </Button>
               )}
             </div>
@@ -2406,6 +2953,1578 @@ function LessonPage({
       ) : null}
     </div>
   );
+}
+
+// ─── ELP Vocabulary for games/exercises ───────────────────────────────────────
+const ELP_VOCAB = [
+  { term: "Phonology", def: "The study of sound systems in language" },
+  { term: "Morphology", def: "The study of word structure and formation" },
+  { term: "Syntax", def: "Rules governing sentence structure" },
+  { term: "Semantics", def: "The study of meaning in language" },
+  { term: "Pragmatics", def: "Language use in social context" },
+  { term: "Discourse", def: "Language beyond the sentence level" },
+  { term: "Scaffolding", def: "Temporary support to aid learning" },
+  { term: "CLT", def: "Communicative Language Teaching approach" },
+  { term: "Fluency", def: "Smooth, natural language production" },
+  { term: "Accuracy", def: "Correct use of language forms" },
+];
+
+const MCQ_QUESTIONS = [
+  {
+    q: "Which approach emphasises meaningful communication over drills?",
+    opts: ["Grammar-Translation", "CLT", "Audio-lingual", "Silent Way"],
+    ans: 1,
+  },
+  {
+    q: "Krashen's 'affective filter' refers to:",
+    opts: [
+      "Grammar rules",
+      "Emotional barriers to acquisition",
+      "Vocabulary size",
+      "Reading speed",
+    ],
+    ans: 1,
+  },
+  {
+    q: "ZPD stands for:",
+    opts: [
+      "Zone of Personal Development",
+      "Zone of Proximal Development",
+      "Zero-Point Drill",
+      "Zone of Practical Discourse",
+    ],
+    ans: 1,
+  },
+  {
+    q: "Task-Based Learning (TBL) focuses on:",
+    opts: [
+      "Memorising grammar tables",
+      "Completing real-world tasks",
+      "Teacher-centred lectures",
+      "Silent reading only",
+    ],
+    ans: 1,
+  },
+  {
+    q: "Code-switching means:",
+    opts: [
+      "Writing in code",
+      "Switching between languages/dialects",
+      "Changing font",
+      "Translating word-for-word",
+    ],
+    ans: 1,
+  },
+];
+
+// ─── Complete & Submit Button ─────────────────────────────────────────────────
+function CompleteButton({
+  onComplete,
+  isPending,
+  isCompleted,
+}: {
+  onComplete: () => void;
+  isPending: boolean;
+  isCompleted: boolean;
+}) {
+  if (isCompleted) {
+    return (
+      <div
+        className="flex items-center gap-2 justify-center py-4 text-green-600 font-semibold font-ui text-lg"
+        data-ocid="lesson.success_state"
+      >
+        <CheckCircle2 className="h-6 w-6" /> Completed! Well done!
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onComplete}
+      disabled={isPending}
+      data-ocid="lesson.complete.button"
+      aria-label="Complete and submit this lesson"
+      className="w-full mt-6 py-4 px-8 rounded-xl bg-violet-500 hover:bg-violet-600 active:bg-violet-700 disabled:opacity-60 text-white font-bold text-lg font-ui transition-colors shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+    >
+      {isPending ? (
+        <span className="flex items-center justify-center gap-2">
+          <Loader2 className="h-5 w-5 animate-spin" /> Submitting...
+        </span>
+      ) : (
+        <span className="flex items-center justify-center gap-2">
+          <CheckCircle2 className="h-5 w-5" /> Complete & Submit
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ─── Activity View ────────────────────────────────────────────────────────────
+function ActivityView({
+  lesson,
+  onComplete,
+  isCompleted,
+  isPending,
+}: {
+  lesson: { title: string; content: string };
+  onComplete: () => void;
+  isCompleted: boolean;
+  isPending: boolean;
+}) {
+  const lines = lesson.content.split("\n");
+  const steps = lines.filter((l) => /^\d+\./.test(l.trim()));
+  const [checked, setChecked] = useState<boolean[]>(steps.map(() => false));
+  const [reflection, setReflection] = useState("");
+
+  const toggleStep = (i: number) => {
+    setChecked((prev) => {
+      const n = [...prev];
+      n[i] = !n[i];
+      return n;
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+        <h3 className="font-semibold text-base font-ui">Activity Steps</h3>
+        {steps.length > 0 ? (
+          <ol className="space-y-3">
+            {steps.map((step, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static list
+              <li key={i} className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => toggleStep(i)}
+                  data-ocid={`activity.checkbox.${i + 1}`}
+                  className={`mt-0.5 w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${checked[i] ? "bg-violet-500 border-violet-500" : "border-muted-foreground"}`}
+                  aria-label={`Mark step ${i + 1} complete`}
+                >
+                  {checked[i] && (
+                    <CheckCircle2 className="h-4 w-4 text-white" />
+                  )}
+                </button>
+                <span
+                  className={`font-ui text-sm leading-relaxed ${checked[i] ? "line-through text-muted-foreground" : ""}`}
+                >
+                  {step.replace(/^\d+\.\s*/, "")}
+                </span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <LessonContent content={lesson.content} />
+        )}
+      </div>
+      <div className="space-y-2">
+        <label className="font-ui text-sm font-semibold" htmlFor="reflection">
+          Reflection: What did you learn from this activity?
+        </label>
+        <textarea
+          id="reflection"
+          value={reflection}
+          onChange={(e) => setReflection(e.target.value)}
+          placeholder="Write your reflection here..."
+          data-ocid="activity.textarea"
+          rows={4}
+          className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+        />
+      </div>
+      <CompleteButton
+        onComplete={onComplete}
+        isPending={isPending}
+        isCompleted={isCompleted}
+      />
+    </div>
+  );
+}
+
+// ─── Worksheet View ───────────────────────────────────────────────────────────
+function WorksheetView({
+  lesson,
+  onComplete,
+  isCompleted,
+  isPending,
+}: {
+  lesson: { title: string; content: string };
+  onComplete: () => void;
+  isCompleted: boolean;
+  isPending: boolean;
+}) {
+  const t = lesson.title;
+  const [answers, setAnswers] = useState<string[]>(Array(5).fill(""));
+  const [tfAnswers, setTfAnswers] = useState<string[]>(Array(5).fill(""));
+
+  const setAnswer = (i: number, v: string) =>
+    setAnswers((prev) => {
+      const n = [...prev];
+      n[i] = v;
+      return n;
+    });
+  const setTf = (i: number, v: string) =>
+    setTfAnswers((prev) => {
+      const n = [...prev];
+      n[i] = v;
+      return n;
+    });
+
+  const tfStatements = [
+    "Communicative competence includes both linguistic and sociolinguistic knowledge.",
+    "The grammar-translation method is the dominant approach in modern CLT classrooms.",
+    "Scaffolding is only useful for beginner learners.",
+    "Task-based learning focuses on completing meaningful, real-world tasks.",
+    "Code-switching always indicates a lack of language proficiency.",
+  ];
+
+  const vocabPairs = ELP_VOCAB.slice(0, 5);
+
+  if (t.includes("True / False") || t.includes("True/False")) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-5">
+          <h3 className="font-semibold font-ui">True / False / Not Given</h3>
+          <p className="text-sm text-muted-foreground font-ui">
+            Read each statement and select: True, False, or Not Given.
+          </p>
+          {tfStatements.map((stmt, i) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static list
+              key={i}
+              className="space-y-2 border-b border-border pb-4 last:border-0"
+            >
+              <p className="font-ui text-sm font-medium">
+                {i + 1}. {stmt}
+              </p>
+              <div className="flex gap-4">
+                {["True", "False", "Not Given"].map((opt) => (
+                  <label
+                    key={opt}
+                    className="flex items-center gap-2 cursor-pointer font-ui text-sm"
+                  >
+                    <input
+                      type="radio"
+                      name={`tf-${i}`}
+                      value={opt}
+                      checked={tfAnswers[i] === opt}
+                      onChange={() => setTf(i, opt)}
+                      data-ocid={`worksheet.radio.${i + 1}`}
+                      className="accent-teal-600"
+                    />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Vocabulary")) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold font-ui">Vocabulary Matching</h3>
+          <p className="text-sm text-muted-foreground font-ui">
+            Write the correct definition for each term.
+          </p>
+          {vocabPairs.map((v, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static list
+            <div key={i} className="space-y-1">
+              <label
+                className="font-ui text-sm font-semibold"
+                htmlFor={`vocab-${i}`}
+              >
+                {v.term}
+              </label>
+              <input
+                id={`vocab-${i}`}
+                type="text"
+                value={answers[i]}
+                onChange={(e) => setAnswer(i, e.target.value)}
+                placeholder="Enter definition..."
+                data-ocid={`worksheet.input.${i + 1}`}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 font-ui text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              />
+            </div>
+          ))}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Comprehension") || t.includes("Key Concepts")) {
+    const prompts = [
+      "What is the central argument of this material?",
+      "What evidence supports the main claim?",
+      "How does this connect to broader themes in your course?",
+    ];
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-5">
+          <h3 className="font-semibold font-ui">Comprehension Questions</h3>
+          {prompts.map((p, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static list
+            <div key={i} className="space-y-2">
+              <label
+                className="font-ui text-sm font-semibold"
+                htmlFor={`comp-${i}`}
+              >
+                {i + 1}. {p}
+              </label>
+              <textarea
+                id={`comp-${i}`}
+                value={answers[i]}
+                onChange={(e) => setAnswer(i, e.target.value)}
+                placeholder="Your answer..."
+                data-ocid={`worksheet.textarea.${i + 1}`}
+                rows={3}
+                className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              />
+            </div>
+          ))}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+        <LessonContent content={lesson.content} />
+        <div className="space-y-2 pt-2">
+          <label
+            className="font-ui text-sm font-semibold"
+            htmlFor="ws-response"
+          >
+            Your Response
+          </label>
+          <textarea
+            id="ws-response"
+            value={answers[0]}
+            onChange={(e) => setAnswer(0, e.target.value)}
+            placeholder="Write your response here..."
+            data-ocid="worksheet.textarea"
+            rows={5}
+            className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+          />
+        </div>
+      </div>
+      <CompleteButton
+        onComplete={onComplete}
+        isPending={isPending}
+        isCompleted={isCompleted}
+      />
+    </div>
+  );
+}
+
+// ─── LSRW View ────────────────────────────────────────────────────────────────
+function LSRWView({
+  lesson,
+  onComplete,
+  isCompleted,
+  isPending,
+}: {
+  lesson: { title: string; content: string };
+  onComplete: () => void;
+  isCompleted: boolean;
+  isPending: boolean;
+}) {
+  const [response, setResponse] = useState("");
+  const title = lesson.title;
+  const label = title.includes("Listening")
+    ? "Your notes"
+    : title.includes("Speaking")
+      ? "Your presentation outline"
+      : title.includes("Reading")
+        ? "Your reading notes"
+        : "Your paragraph";
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+        <LessonContent content={lesson.content} />
+      </div>
+      <div className="space-y-2">
+        <label
+          className="font-ui text-sm font-semibold"
+          htmlFor="lsrw-response"
+        >
+          {label}
+        </label>
+        <textarea
+          id="lsrw-response"
+          value={response}
+          onChange={(e) => setResponse(e.target.value)}
+          placeholder={`Write ${label.toLowerCase()} here...`}
+          data-ocid="lsrw.textarea"
+          rows={6}
+          className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+        />
+        <p className="text-xs text-muted-foreground font-ui text-right">
+          {response.trim() ? response.trim().split(/\s+/).length : 0} words
+        </p>
+      </div>
+      <CompleteButton
+        onComplete={onComplete}
+        isPending={isPending}
+        isCompleted={isCompleted}
+      />
+    </div>
+  );
+}
+
+// ─── Exercise View ────────────────────────────────────────────────────────────
+function ExerciseView({
+  lesson,
+  onComplete,
+  isCompleted,
+  isPending,
+}: {
+  lesson: { title: string; content: string };
+  onComplete: () => void;
+  isCompleted: boolean;
+  isPending: boolean;
+}) {
+  const t = lesson.title;
+  const [answers, setAnswers] = useState<string[]>(Array(5).fill(""));
+  const [mcqSelected, setMcqSelected] = useState<Record<number, number>>({});
+  const [mcqSubmitted, setMcqSubmitted] = useState(false);
+  const [selfCheck, setSelfCheck] = useState<string[]>(Array(5).fill(""));
+
+  const setAnswer = (i: number, v: string) =>
+    setAnswers((prev) => {
+      const n = [...prev];
+      n[i] = v;
+      return n;
+    });
+  const setSelf = (i: number, v: string) =>
+    setSelfCheck((prev) => {
+      const n = [...prev];
+      n[i] = v;
+      return n;
+    });
+
+  const gapSentences = [
+    "___________ refers to the emotional barriers that can prevent language acquisition.",
+    "The ___________ method focuses on communicative competence over grammar rules.",
+    "Vygotsky introduced the concept of the ___________ to describe supported learning.",
+    "___________ is the study of how context influences meaning in communication.",
+    "Teachers use ___________ to bridge the gap between what students know and new content.",
+  ];
+
+  const selfItems = [
+    "I can define the 10 key terms from this material",
+    "I can explain the central argument in my own words",
+    "I can give 3 real-world examples related to this content",
+    "I can identify strengths and weaknesses in the argument",
+    "I can apply this content to a new scenario",
+  ];
+
+  const paraphraseSentences = [
+    "Communicative competence is essential for effective language use in real-world contexts.",
+    "Scaffolding provides temporary support that enables learners to accomplish tasks beyond their current ability.",
+    "Task-based learning emphasises the completion of meaningful tasks as the primary vehicle for language acquisition.",
+  ];
+
+  const errorSamples = [
+    "CLT stands for Critical Language Theory and focuses on memorisation of grammar rules.",
+    "Scaffolding means permanently simplifying tasks so students never face challenges.",
+    "Code-switching is always a sign that a student has failed to learn the target language properly.",
+  ];
+
+  if (t.includes("Multiple Choice") || t.includes("MCQ")) {
+    const score = MCQ_QUESTIONS.filter(
+      (q, i) => mcqSelected[i] === q.ans,
+    ).length;
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-5">
+          <h3 className="font-semibold font-ui">Multiple Choice Quiz</h3>
+          {MCQ_QUESTIONS.map((q, qi) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static list
+              key={qi}
+              className="space-y-2 border-b border-border pb-4 last:border-0"
+            >
+              <p className="font-ui text-sm font-semibold">
+                {qi + 1}. {q.q}
+              </p>
+              <div className="grid grid-cols-1 gap-2">
+                {q.opts.map((opt, oi) => {
+                  const isSelected = mcqSelected[qi] === oi;
+                  const isCorrect = oi === q.ans;
+                  let cls =
+                    "flex items-center gap-2 p-2 rounded-lg border cursor-pointer font-ui text-sm transition-colors ";
+                  if (mcqSubmitted) {
+                    if (isCorrect)
+                      cls += "border-green-500 bg-green-50 text-green-800";
+                    else if (isSelected)
+                      cls += "border-red-400 bg-red-50 text-red-800";
+                    else cls += "border-border";
+                  } else {
+                    cls += isSelected
+                      ? "border-teal-500 bg-teal-50"
+                      : "border-border hover:border-teal-300";
+                  }
+                  return (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static list
+                    <label key={oi} className={cls}>
+                      <input
+                        type="radio"
+                        name={`mcq-${qi}`}
+                        disabled={mcqSubmitted}
+                        checked={isSelected}
+                        onChange={() =>
+                          setMcqSelected((prev) => ({ ...prev, [qi]: oi }))
+                        }
+                        data-ocid={`exercise.radio.${qi + 1}`}
+                        className="accent-teal-600"
+                      />
+                      {opt}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          {!mcqSubmitted ? (
+            <button
+              type="button"
+              onClick={() => setMcqSubmitted(true)}
+              data-ocid="exercise.submit_button"
+              className="px-6 py-2 rounded-lg bg-violet-500 text-white font-ui font-semibold text-sm hover:bg-violet-600 transition-colors"
+            >
+              Check Answers
+            </button>
+          ) : (
+            <div className="font-ui font-semibold text-teal-700 bg-teal-50 rounded-lg p-3">
+              Score: {score}/{MCQ_QUESTIONS.length} —{" "}
+              {score >= 4
+                ? "Excellent!"
+                : score >= 3
+                  ? "Good job!"
+                  : "Keep practising!"}
+            </div>
+          )}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Gap Fill")) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold font-ui">Gap Fill Exercise</h3>
+          <p className="text-sm text-muted-foreground font-ui">
+            Fill in the blanks with the correct word or phrase.
+          </p>
+          {gapSentences.map((s, i) => {
+            const parts = s.split("___________");
+            return (
+              <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: static list
+                key={i}
+                className="flex flex-wrap items-center gap-1 font-ui text-sm"
+              >
+                <span>{i + 1}.</span>
+                <span>{parts[0]}</span>
+                <input
+                  type="text"
+                  value={answers[i]}
+                  onChange={(e) => setAnswer(i, e.target.value)}
+                  data-ocid={`exercise.input.${i + 1}`}
+                  className="inline-block w-36 border-b-2 border-teal-500 bg-transparent px-1 py-0.5 focus-visible:outline-none text-teal-700 font-semibold"
+                  placeholder="..."
+                />
+                <span>{parts[1]}</span>
+              </div>
+            );
+          })}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Self-Assessment")) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold font-ui">Self-Assessment Checklist</h3>
+          {selfItems.map((item, i) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static list
+              key={i}
+              className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-border pb-3 last:border-0"
+            >
+              <p className="font-ui text-sm flex-1">{item}</p>
+              <div className="flex gap-3">
+                {["Confident", "Partially", "Need Review"].map((opt) => (
+                  <label
+                    key={opt}
+                    className="flex items-center gap-1 font-ui text-xs cursor-pointer"
+                  >
+                    <input
+                      type="radio"
+                      name={`self-${i}`}
+                      value={opt}
+                      checked={selfCheck[i] === opt}
+                      onChange={() => setSelf(i, opt)}
+                      data-ocid={`exercise.radio.${i + 1}`}
+                      className="accent-teal-600"
+                    />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Extended Writing") || t.includes("Writing")) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+          <LessonContent content={lesson.content} />
+          <textarea
+            value={answers[0]}
+            onChange={(e) => setAnswer(0, e.target.value)}
+            placeholder="Write your extended response here (aim for 300 words)..."
+            data-ocid="exercise.textarea"
+            rows={10}
+            className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+          />
+          <p className="text-xs text-muted-foreground font-ui text-right">
+            {answers[0].trim() ? answers[0].trim().split(/\s+/).length : 0} /
+            300 words
+          </p>
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Short Answer")) {
+    const prompts = [
+      "What is the central argument of this material?",
+      "Name two key concepts discussed.",
+      "What evidence supports the main claim?",
+      "How does this topic connect to language teaching?",
+      "What is one real-world application of this material?",
+    ];
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold font-ui">Short Answer Questions</h3>
+          {prompts.map((p, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static list
+            <div key={i} className="space-y-1">
+              <label
+                className="font-ui text-sm font-semibold"
+                htmlFor={`sa-${i}`}
+              >
+                {i + 1}. {p}
+              </label>
+              <input
+                id={`sa-${i}`}
+                type="text"
+                value={answers[i]}
+                onChange={(e) => setAnswer(i, e.target.value)}
+                placeholder="Your answer..."
+                data-ocid={`exercise.input.${i + 1}`}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 font-ui text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              />
+            </div>
+          ))}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Paraphrasing")) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-5">
+          <h3 className="font-semibold font-ui">Paraphrasing Practice</h3>
+          <p className="text-sm text-muted-foreground font-ui">
+            Rewrite each sentence in your own words without changing the
+            meaning.
+          </p>
+          {paraphraseSentences.map((s, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static list
+            <div key={i} className="space-y-2">
+              <p className="font-ui text-sm italic bg-muted px-3 py-2 rounded-lg">
+                {s}
+              </p>
+              <textarea
+                value={answers[i]}
+                onChange={(e) => setAnswer(i, e.target.value)}
+                placeholder="Your paraphrase..."
+                data-ocid={`exercise.textarea.${i + 1}`}
+                rows={2}
+                className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              />
+            </div>
+          ))}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Error Correction")) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-5">
+          <h3 className="font-semibold font-ui">Error Correction</h3>
+          <p className="text-sm text-muted-foreground font-ui">
+            Identify the error in each statement and rewrite it correctly.
+          </p>
+          {errorSamples.map((s, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static list
+            <div key={i} className="space-y-2">
+              <p className="font-ui text-sm bg-red-50 text-red-800 border border-red-200 px-3 py-2 rounded-lg">
+                {s}
+              </p>
+              <textarea
+                value={answers[i]}
+                onChange={(e) => setAnswer(i, e.target.value)}
+                placeholder="Corrected version..."
+                data-ocid={`exercise.textarea.${i + 1}`}
+                rows={2}
+                className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              />
+            </div>
+          ))}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("True / False") || t.includes("True/False")) {
+    const tfEx = [
+      "CLT stands for Communicative Language Teaching.",
+      "The affective filter always improves language acquisition.",
+      "Phonology is the study of sentence structure.",
+      "Scaffolding is a concept from Vygotsky's theory.",
+      "Task-based learning avoids the use of real-world tasks.",
+    ];
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold font-ui">True / False / Not Given</h3>
+          {tfEx.map((stmt, i) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static list
+              key={i}
+              className="space-y-2 border-b border-border pb-3 last:border-0"
+            >
+              <p className="font-ui text-sm font-medium">
+                {i + 1}. {stmt}
+              </p>
+              <div className="flex gap-4">
+                {["True", "False", "Not Given"].map((opt) => (
+                  <label
+                    key={opt}
+                    className="flex items-center gap-2 cursor-pointer font-ui text-sm"
+                  >
+                    <input
+                      type="radio"
+                      name={`ex-tf-${i}`}
+                      value={opt}
+                      checked={answers[i] === opt}
+                      onChange={() => setAnswer(i, opt)}
+                      data-ocid={`exercise.radio.${i + 1}`}
+                      className="accent-teal-600"
+                    />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Comprehension")) {
+    const cqPrompts = [
+      "What is the central argument?",
+      "What evidence is provided?",
+      "What assumptions underlie the main claims?",
+      "What limitations are acknowledged?",
+      "How does this connect to broader themes?",
+    ];
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold font-ui">Comprehension Questions</h3>
+          {cqPrompts.map((p, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static list
+            <div key={i} className="space-y-1">
+              <label
+                className="font-ui text-sm font-semibold"
+                htmlFor={`cq-${i}`}
+              >
+                {i + 1}. {p}
+              </label>
+              <textarea
+                id={`cq-${i}`}
+                value={answers[i]}
+                onChange={(e) => setAnswer(i, e.target.value)}
+                placeholder="Your answer..."
+                data-ocid={`exercise.textarea.${i + 1}`}
+                rows={3}
+                className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              />
+            </div>
+          ))}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  // default
+  return (
+    <div className="space-y-6">
+      <div className="bg-muted/40 rounded-xl p-5">
+        <LessonContent content={lesson.content} />
+        <div className="mt-4 space-y-2">
+          <label className="font-ui text-sm font-semibold" htmlFor="ex-default">
+            Your Response
+          </label>
+          <textarea
+            id="ex-default"
+            value={answers[0]}
+            onChange={(e) => setAnswer(0, e.target.value)}
+            placeholder="Write your response here..."
+            data-ocid="exercise.textarea"
+            rows={5}
+            className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+          />
+        </div>
+      </div>
+      <CompleteButton
+        onComplete={onComplete}
+        isPending={isPending}
+        isCompleted={isCompleted}
+      />
+    </div>
+  );
+}
+
+// ─── Memory Match Game ────────────────────────────────────────────────────────
+function MemoryMatchGame({
+  onComplete,
+  isCompleted,
+  isPending,
+}: {
+  onComplete: () => void;
+  isCompleted: boolean;
+  isPending: boolean;
+}) {
+  const pairs = ELP_VOCAB.slice(0, 8);
+  type Card = {
+    id: number;
+    content: string;
+    type: "term" | "def";
+    pairId: number;
+    flipped: boolean;
+    matched: boolean;
+  };
+  const makeCards = (): Card[] => {
+    const cards: Card[] = [];
+    pairs.forEach((p, i) => {
+      cards.push({
+        id: i * 2,
+        content: p.term,
+        type: "term",
+        pairId: i,
+        flipped: false,
+        matched: false,
+      });
+      cards.push({
+        id: i * 2 + 1,
+        content: p.def,
+        type: "def",
+        pairId: i,
+        flipped: false,
+        matched: false,
+      });
+    });
+    return cards.sort(() => Math.random() - 0.5);
+  };
+  const [cards, setCards] = useState<Card[]>(makeCards);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [moves, setMoves] = useState(0);
+
+  const allMatched = cards.every((c) => c.matched);
+
+  const flip = (idx: number) => {
+    if (selected.length === 2 || cards[idx].flipped || cards[idx].matched)
+      return;
+    const newSelected = [...selected, idx];
+    const newCards = cards.map((c, i) =>
+      i === idx ? { ...c, flipped: true } : c,
+    );
+    setCards(newCards);
+    if (newSelected.length === 2) {
+      setMoves((m) => m + 1);
+      const [a, b] = newSelected;
+      if (
+        newCards[a].pairId === newCards[b].pairId &&
+        newCards[a].type !== newCards[b].type
+      ) {
+        setTimeout(() => {
+          setCards((prev) =>
+            prev.map((c, i) =>
+              i === a || i === b ? { ...c, matched: true } : c,
+            ),
+          );
+          setSelected([]);
+        }, 600);
+      } else {
+        setTimeout(() => {
+          setCards((prev) =>
+            prev.map((c, i) =>
+              i === a || i === b ? { ...c, flipped: false } : c,
+            ),
+          );
+          setSelected([]);
+        }, 800);
+      }
+    } else {
+      setSelected(newSelected);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold font-ui">Memory Match</h3>
+          <span className="text-sm text-muted-foreground font-ui">
+            Moves: {moves}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground font-ui">
+          Match each term to its definition. Click two cards to flip them.
+        </p>
+        <div className="grid grid-cols-4 gap-2">
+          {cards.map((card, i) => (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => flip(i)}
+              data-ocid={`game.canvas_target.${i + 1}`}
+              className={`aspect-square rounded-lg border-2 p-1 text-xs font-ui font-semibold transition-all cursor-pointer ${
+                card.matched
+                  ? "border-green-500 bg-green-100 text-green-800"
+                  : card.flipped
+                    ? (
+                        card.type === "term"
+                          ? "border-teal-500 bg-teal-50 text-teal-800"
+                          : "border-amber-500 bg-amber-50 text-amber-800"
+                      )
+                    : "border-border bg-muted hover:bg-muted/60"
+              }`}
+            >
+              {card.flipped || card.matched ? card.content : "?"}
+            </button>
+          ))}
+        </div>
+        {allMatched && (
+          <div className="text-center font-ui font-semibold text-green-700 bg-green-50 rounded-lg p-3">
+            🎉 All matched in {moves} moves!
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setCards(makeCards());
+            setSelected([]);
+            setMoves(0);
+          }}
+          className="text-sm text-muted-foreground underline font-ui hover:text-foreground"
+        >
+          Reset Game
+        </button>
+      </div>
+      <CompleteButton
+        onComplete={onComplete}
+        isPending={isPending}
+        isCompleted={isCompleted}
+      />
+    </div>
+  );
+}
+
+// ─── Bingo Game ───────────────────────────────────────────────────────────────
+function BingoGame({
+  onComplete,
+  isCompleted,
+  isPending,
+}: {
+  onComplete: () => void;
+  isCompleted: boolean;
+  isPending: boolean;
+}) {
+  const allTerms = [
+    "Phonology",
+    "Morphology",
+    "Syntax",
+    "Semantics",
+    "Pragmatics",
+    "Discourse",
+    "Scaffolding",
+    "CLT",
+    "Fluency",
+    "Accuracy",
+    "ZPD",
+    "TBL",
+    "Input",
+    "Affective",
+    "Register",
+    "Cohesion",
+  ];
+  const [grid] = useState(() =>
+    allTerms.sort(() => Math.random() - 0.5).slice(0, 16),
+  );
+  const [marked, setMarked] = useState<Set<number>>(new Set());
+  const [won, setWon] = useState(false);
+
+  const toggle = (i: number) => {
+    const newMarked = new Set(marked);
+    if (newMarked.has(i)) newMarked.delete(i);
+    else newMarked.add(i);
+    setMarked(newMarked);
+    // Check rows/cols/diag
+    const lines = [
+      [0, 1, 2, 3],
+      [4, 5, 6, 7],
+      [8, 9, 10, 11],
+      [12, 13, 14, 15],
+      [0, 4, 8, 12],
+      [1, 5, 9, 13],
+      [2, 6, 10, 14],
+      [3, 7, 11, 15],
+      [0, 5, 10, 15],
+      [3, 6, 9, 12],
+    ];
+    if (lines.some((line) => line.every((pos) => newMarked.has(pos))))
+      setWon(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+        <h3 className="font-semibold font-ui">Vocabulary Bingo</h3>
+        <p className="text-sm text-muted-foreground font-ui">
+          Click to mark terms as the teacher calls them. Get 4 in a row to win!
+        </p>
+        <div className="grid grid-cols-4 gap-2">
+          {grid.map((term, i) => (
+            <button
+              // biome-ignore lint/suspicious/noArrayIndexKey: static list
+              key={i}
+              type="button"
+              onClick={() => toggle(i)}
+              data-ocid={`game.canvas_target.${i + 1}`}
+              className={`py-3 px-1 rounded-lg border-2 text-xs font-ui font-semibold transition-all ${
+                marked.has(i)
+                  ? "border-teal-500 bg-teal-100 text-teal-800"
+                  : "border-border hover:border-teal-300"
+              }`}
+            >
+              {term}
+            </button>
+          ))}
+        </div>
+        {won && (
+          <div className="text-center font-ui font-semibold text-teal-700 bg-teal-50 rounded-lg p-3">
+            🎉 BINGO! You got 4 in a row!
+          </div>
+        )}
+      </div>
+      <CompleteButton
+        onComplete={onComplete}
+        isPending={isPending}
+        isCompleted={isCompleted}
+      />
+    </div>
+  );
+}
+
+// ─── Game View ────────────────────────────────────────────────────────────────
+function CrosswordGame({
+  onComplete,
+  isCompleted,
+  isPending,
+}: {
+  onComplete: () => void;
+  isCompleted: boolean;
+  isPending: boolean;
+}) {
+  const clues = [
+    {
+      dir: "1 Across",
+      clue: "Study of sound systems in language",
+      ans: "Phonology",
+    },
+    {
+      dir: "2 Down",
+      clue: "Temporary support to aid learning",
+      ans: "Scaffolding",
+    },
+    { dir: "3 Across", clue: "Study of meaning in language", ans: "Semantics" },
+    {
+      dir: "4 Down",
+      clue: "Smooth, natural language production",
+      ans: "Fluency",
+    },
+    {
+      dir: "5 Across",
+      clue: "Communicative Language Teaching (abbr)",
+      ans: "CLT",
+    },
+  ];
+  const [cAnswers, setCAnswers] = useState<string[]>(Array(5).fill(""));
+  const setCA = (i: number, v: string) =>
+    setCAnswers((p) => {
+      const n = [...p];
+      n[i] = v;
+      return n;
+    });
+  return (
+    <div className="space-y-6">
+      <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+        <h3 className="font-semibold font-ui">🔤 Crossword Puzzle</h3>
+        <p className="text-sm text-muted-foreground font-ui">
+          Fill in the answers using the clues below.
+        </p>
+        {clues.map((c, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static list
+          <div key={i} className="space-y-1">
+            <label
+              className="font-ui text-sm font-semibold"
+              htmlFor={`cw-${i}`}
+            >
+              {c.dir}: {c.clue}
+            </label>
+            <input
+              id={`cw-${i}`}
+              type="text"
+              value={cAnswers[i]}
+              onChange={(e) => setCA(i, e.target.value)}
+              placeholder="Answer..."
+              data-ocid={`game.input.${i + 1}`}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 font-ui text-sm uppercase tracking-widest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+            />
+          </div>
+        ))}
+      </div>
+      <CompleteButton
+        onComplete={onComplete}
+        isPending={isPending}
+        isCompleted={isCompleted}
+      />
+    </div>
+  );
+}
+
+function GameView({
+  lesson,
+  onComplete,
+  isCompleted,
+  isPending,
+}: {
+  lesson: { title: string; content: string };
+  onComplete: () => void;
+  isCompleted: boolean;
+  isPending: boolean;
+}) {
+  const t = lesson.title;
+  const [started, setStarted] = useState(false);
+  const [response, setResponse] = useState("");
+  const [quizSelected, setQuizSelected] = useState<Record<number, number>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [round, setRound] = useState(0);
+
+  if (t.includes("Memory Match")) {
+    return (
+      <MemoryMatchGame
+        onComplete={onComplete}
+        isCompleted={isCompleted}
+        isPending={isPending}
+      />
+    );
+  }
+
+  if (t.includes("Bingo")) {
+    return (
+      <BingoGame
+        onComplete={onComplete}
+        isCompleted={isCompleted}
+        isPending={isPending}
+      />
+    );
+  }
+
+  if (t.includes("Quiz Bowl") || t.includes("Kahoot")) {
+    const score = MCQ_QUESTIONS.filter(
+      (q, i) => quizSelected[i] === q.ans,
+    ).length;
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-5">
+          <h3 className="font-semibold font-ui">
+            {t.includes("Kahoot") ? "⚡ Kahoot-Style Quiz" : "🏆 Quiz Bowl"}
+          </h3>
+          {MCQ_QUESTIONS.map((q, qi) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static list
+              key={qi}
+              className="space-y-2 border-b border-border pb-4 last:border-0"
+            >
+              <p className="font-ui text-sm font-semibold">
+                {qi + 1}. {q.q}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {q.opts.map((opt, oi) => {
+                  const colors = [
+                    "bg-red-100 border-red-300 text-red-800",
+                    "bg-blue-100 border-blue-300 text-blue-800",
+                    "bg-yellow-100 border-yellow-300 text-yellow-800",
+                    "bg-green-100 border-green-300 text-green-800",
+                  ];
+                  const isSelected = quizSelected[qi] === oi;
+                  const isCorrect = oi === q.ans;
+                  let cls = `flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer font-ui text-sm font-medium transition-all ${colors[oi]} `;
+                  if (quizSubmitted && isCorrect)
+                    cls += "ring-2 ring-green-500";
+                  else if (quizSubmitted && isSelected && !isCorrect)
+                    cls += "opacity-50";
+                  else if (isSelected) cls += "ring-2 ring-violet-500";
+                  return (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static list
+                    <label key={oi} className={cls}>
+                      <input
+                        type="radio"
+                        name={`kb-${qi}`}
+                        disabled={quizSubmitted}
+                        checked={isSelected}
+                        onChange={() =>
+                          setQuizSelected((p) => ({ ...p, [qi]: oi }))
+                        }
+                        data-ocid={`game.radio.${qi + 1}`}
+                        className="sr-only"
+                      />
+                      <span className="font-bold">
+                        {["A", "B", "C", "D"][oi]}
+                      </span>{" "}
+                      {opt}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          {!quizSubmitted ? (
+            <button
+              type="button"
+              onClick={() => setQuizSubmitted(true)}
+              data-ocid="game.submit_button"
+              className="px-6 py-2 rounded-lg bg-violet-500 text-white font-ui font-semibold text-sm hover:bg-violet-600"
+            >
+              Submit Answers
+            </button>
+          ) : (
+            <div className="font-ui font-semibold text-teal-700 bg-teal-50 rounded-lg p-3 text-center">
+              Score: {score}/{MCQ_QUESTIONS.length} —{" "}
+              {score >= 4
+                ? "🏆 Champion!"
+                : score >= 3
+                  ? "👏 Well done!"
+                  : "💪 Keep going!"}
+            </div>
+          )}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  if (t.includes("Crossword")) {
+    return (
+      <CrosswordGame
+        onComplete={onComplete}
+        isCompleted={isCompleted}
+        isPending={isPending}
+      />
+    );
+  }
+
+  if (
+    t.includes("Word Association") ||
+    t.includes("20 Questions") ||
+    t.includes("Hot Seat") ||
+    t.includes("Taboo") ||
+    t.includes("Category Sort")
+  ) {
+    const gameName = t.includes("Taboo")
+      ? "Taboo"
+      : t.includes("Hot Seat")
+        ? "Hot Seat"
+        : t.includes("20 Questions")
+          ? "20 Questions"
+          : t.includes("Word Association")
+            ? "Word Association Chain"
+            : "Category Sort Race";
+    const rounds = [ELP_VOCAB[0].term, ELP_VOCAB[2].term, ELP_VOCAB[4].term];
+    return (
+      <div className="space-y-6">
+        <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold font-ui">🎮 {gameName}</h3>
+          <div className="bg-background border border-border rounded-lg p-4 text-center space-y-3">
+            <p className="font-ui text-sm text-muted-foreground">
+              Current Term:
+            </p>
+            <p className="font-display text-2xl font-bold text-teal-700">
+              {rounds[Math.min(round, rounds.length - 1)]}
+            </p>
+            {round < rounds.length - 1 && (
+              <button
+                type="button"
+                onClick={() => setRound((r) => r + 1)}
+                data-ocid="game.primary_button"
+                className="px-4 py-2 bg-violet-500 text-white rounded-lg font-ui text-sm font-semibold hover:bg-violet-600"
+              >
+                Next Term →
+              </button>
+            )}
+          </div>
+          <LessonContent content={lesson.content} />
+          {!started ? (
+            <button
+              type="button"
+              onClick={() => setStarted(true)}
+              data-ocid="game.primary_button"
+              className="px-6 py-2 bg-violet-500 text-white rounded-lg font-ui font-semibold text-sm hover:bg-violet-600"
+            >
+              ▶ Start Game
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <label
+                className="font-ui text-sm font-semibold"
+                htmlFor="game-resp"
+              >
+                Your Response / Notes
+              </label>
+              <textarea
+                id="game-resp"
+                value={response}
+                onChange={(e) => setResponse(e.target.value)}
+                placeholder="Write your responses here..."
+                data-ocid="game.textarea"
+                rows={4}
+                className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              />
+            </div>
+          )}
+        </div>
+        <CompleteButton
+          onComplete={onComplete}
+          isPending={isPending}
+          isCompleted={isCompleted}
+        />
+      </div>
+    );
+  }
+
+  // Default game
+  return (
+    <div className="space-y-6">
+      <div className="bg-muted/40 rounded-xl p-5 space-y-4">
+        <LessonContent content={lesson.content} />
+        {!started ? (
+          <button
+            type="button"
+            onClick={() => setStarted(true)}
+            data-ocid="game.primary_button"
+            className="px-6 py-2 bg-violet-500 text-white rounded-lg font-ui font-semibold hover:bg-violet-600"
+          >
+            ▶ Start & Play
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <label
+              className="font-ui text-sm font-semibold"
+              htmlFor="game-resp2"
+            >
+              Your Response
+            </label>
+            <textarea
+              id="game-resp2"
+              value={response}
+              onChange={(e) => setResponse(e.target.value)}
+              placeholder="Write your response here..."
+              data-ocid="game.textarea"
+              rows={4}
+              className="w-full rounded-lg border border-border bg-background p-3 font-ui text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+            />
+          </div>
+        )}
+      </div>
+      <CompleteButton
+        onComplete={onComplete}
+        isPending={isPending}
+        isCompleted={isCompleted}
+      />
+    </div>
+  );
+}
+
+// ─── Interactive Lesson Dispatcher ────────────────────────────────────────────
+function InteractiveLessonView({
+  lesson,
+  onComplete,
+  isCompleted,
+  isPending,
+}: {
+  lesson: { title: string; content: string; type?: LocalLesson["type"] };
+  onComplete: () => void;
+  isCompleted: boolean;
+  isPending: boolean;
+}) {
+  const type = lesson.type || detectTypeFromTitle(lesson.title);
+  switch (type) {
+    case "Activity":
+      return (
+        <ActivityView
+          lesson={lesson}
+          onComplete={onComplete}
+          isCompleted={isCompleted}
+          isPending={isPending}
+        />
+      );
+    case "Worksheet":
+      return (
+        <WorksheetView
+          lesson={lesson}
+          onComplete={onComplete}
+          isCompleted={isCompleted}
+          isPending={isPending}
+        />
+      );
+    case "LSRW":
+      return (
+        <LSRWView
+          lesson={lesson}
+          onComplete={onComplete}
+          isCompleted={isCompleted}
+          isPending={isPending}
+        />
+      );
+    case "Game":
+      return (
+        <GameView
+          lesson={lesson}
+          onComplete={onComplete}
+          isCompleted={isCompleted}
+          isPending={isPending}
+        />
+      );
+    case "Exercise":
+      return (
+        <ExerciseView
+          lesson={lesson}
+          onComplete={onComplete}
+          isCompleted={isCompleted}
+          isPending={isPending}
+        />
+      );
+    default:
+      return (
+        <div className="space-y-6">
+          <LessonContent content={lesson.content} />
+          <CompleteButton
+            onComplete={onComplete}
+            isPending={isPending}
+            isCompleted={isCompleted}
+          />
+        </div>
+      );
+  }
 }
 
 function LessonContent({ content }: { content: string }) {
@@ -2466,6 +4585,10 @@ function QuizSection({
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<QuizAttempt | null>(null);
+  const {
+    celebration: quizCelebration,
+    triggerCelebration: triggerQuizCelebration,
+  } = useCelebration();
 
   const questionsQuery = useQuery({
     queryKey: ["quiz-student", String(lessonId)],
@@ -2490,7 +4613,13 @@ function QuizSection({
       setResult(attempt);
       setSubmitted(true);
       qc.invalidateQueries({ queryKey: ["quiz-attempts", String(lessonId)] });
-      toast.success(`Quiz submitted! Score: ${Number(attempt.score)}%`);
+      const score = Number(attempt.score);
+      if (score >= 70) {
+        toast.success(`Quiz submitted! Score: ${score}% 🎉`);
+        triggerQuizCelebration(pickRandom(CORRECT_MESSAGES));
+      } else {
+        toast.info(pickRandom(WRONG_MESSAGES));
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -2504,6 +4633,10 @@ function QuizSection({
 
   return (
     <div className="space-y-4" data-ocid="quiz.section">
+      <CelebrationOverlay
+        visible={quizCelebration.visible}
+        message={quizCelebration.message}
+      />
       <div className="flex items-center gap-2">
         <Trophy className="h-5 w-5 text-primary" />
         <h2 className="font-semibold font-ui text-lg">Quiz</h2>
@@ -2791,6 +4924,33 @@ function TeacherDashboard({
       const localCourses = getLocalCourses();
       const isLocal = localCourses.some((c) => c.id === localId);
       if (isLocal) {
+        if (actor) {
+          try {
+            const lc = localCourses.find((c) => c.id === localId);
+            if (lc) {
+              const result = await actor.createCourse(
+                lc.title,
+                lc.description || "",
+              );
+              if ("ok" in result) {
+                await actor.publishCourse(result.ok.id, published);
+                localStorage.setItem(
+                  `eduloom_meta_${result.ok.id}`,
+                  JSON.stringify({
+                    section: lc.section,
+                    subject: lc.subject,
+                    room: lc.room,
+                    bannerColor: lc.bannerColor,
+                  }),
+                );
+                deleteLocalCourse(localId);
+                return;
+              }
+            }
+          } catch (_e) {
+            // fall through to local update
+          }
+        }
         updateLocalCourse(localId, { isPublished: published });
         return;
       }
@@ -2830,11 +4990,23 @@ function TeacherDashboard({
   return (
     <div className="space-y-8" data-ocid="teacher.dashboard.section">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold">Teacher Dashboard</h1>
-          <p className="text-muted-foreground font-ui mt-1">
-            Manage your courses and track student progress
-          </p>
+        <div className="flex items-center gap-5">
+          <img
+            src="/assets/generated/teacher-clipart.dim_400x500.png"
+            alt="Teacher"
+            className="h-20 w-auto object-contain hidden sm:block"
+          />
+          <div>
+            <h1
+              className="font-display text-3xl font-bold"
+              style={{ color: "oklch(0.35 0.12 52)" }}
+            >
+              Teacher Dashboard
+            </h1>
+            <p className="text-muted-foreground font-ui mt-1">
+              Manage your courses and track student progress
+            </p>
+          </div>
         </div>
         <Button
           onClick={() => setView({ page: "create-course" })}
@@ -2851,7 +5023,7 @@ function TeacherDashboard({
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="shadow-card">
+        <Card className="shadow-card card-pastel-lavender">
           <CardContent className="p-4">
             <p className="text-xs font-ui text-muted-foreground uppercase tracking-widest">
               Total Courses
@@ -2861,7 +5033,7 @@ function TeacherDashboard({
             </p>
           </CardContent>
         </Card>
-        <Card className="shadow-card">
+        <Card className="shadow-card card-pastel-peach">
           <CardContent className="p-4">
             <p className="text-xs font-ui text-muted-foreground uppercase tracking-widest">
               Published
@@ -2874,7 +5046,7 @@ function TeacherDashboard({
             </p>
           </CardContent>
         </Card>
-        <Card className="shadow-card">
+        <Card className="shadow-card card-pastel-mint">
           <CardContent className="p-4">
             <p className="text-xs font-ui text-muted-foreground uppercase tracking-widest">
               Enrollments
@@ -3049,7 +5221,7 @@ function TeacherDashboard({
 // ─── Course Editor ────────────────────────────────────────────────────────────
 // ─── Create Course Page ───────────────────────────────────────────────────────
 function CreateCoursePage({
-  actor: _actor,
+  actor,
   setView,
 }: {
   actor: ReturnType<typeof useActor>["actor"];
@@ -3074,6 +5246,29 @@ function CreateCoursePage({
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      if (actor) {
+        try {
+          const result = await actor.createCourse(
+            title.trim(),
+            description.trim(),
+          );
+          if ("ok" in result) {
+            await actor.publishCourse(result.ok.id, true);
+            localStorage.setItem(
+              `eduloom_meta_${result.ok.id}`,
+              JSON.stringify({
+                section: section.trim(),
+                subject: subject.trim(),
+                room: room.trim(),
+                bannerColor,
+              }),
+            );
+            return result.ok as any;
+          }
+        } catch (_e) {
+          // fall through to local
+        }
+      }
       const newCourse: LocalCourse = {
         id: Date.now(),
         title: title.trim(),
@@ -3298,8 +5493,20 @@ function CourseEditor({
   });
   const lessonsQuery = useQuery({
     queryKey: ["lessons", String(courseId)],
-    queryFn: () => actor!.getLessons(courseId),
+    queryFn: async () => {
+      try {
+        return await actor!.getLessons(courseId);
+      } catch {
+        return [];
+      }
+    },
     enabled: !!actor,
+  });
+  const localLessonsQuery3 = useQuery({
+    queryKey: ["local-lessons", String(courseId)],
+    queryFn: () =>
+      getLocalLessons().filter((l) => l.courseId === Number(courseId)),
+    staleTime: 0,
   });
   const leaderboardQuery = useQuery({
     queryKey: ["leaderboard"],
@@ -3308,10 +5515,22 @@ function CourseEditor({
   });
 
   const cws = (coursesQuery.data ?? []).find((c) => c.course.id === courseId);
+  const localLessonsRaw3 = localLessonsQuery3.data ?? [];
+  const lessons3 = [
+    ...(lessonsQuery.data ?? []),
+    ...localLessonsRaw3.map((l) => ({
+      id: BigInt(l.id),
+      courseId: BigInt(l.courseId),
+      title: l.title,
+      content: l.content,
+      orderIndex: BigInt(l.orderIndex),
+      createdAt: BigInt(0),
+    })),
+  ];
 
   const createLessonMutation = useMutation({
     mutationFn: () => {
-      const orderIndex = BigInt((lessonsQuery.data ?? []).length + 1);
+      const orderIndex = BigInt(lessons3.length + 1);
       return actor!.createLesson(
         courseId,
         lessonTitle.trim(),

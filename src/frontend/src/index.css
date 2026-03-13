@@ -29,26 +29,26 @@
 
 @layer base {
   :root {
-    /* Neutral base — light mode */
-    --background: 0.98 0.004 250;
-    --foreground: 0.16 0.012 250;
-    --card: 1 0 0;
-    --card-foreground: 0.16 0.012 250;
-    --popover: 1 0 0;
-    --popover-foreground: 0.16 0.012 250;
+    /* Pastel background — warm lavender-white */
+    --background: 0.97 0.01 290;
+    --foreground: 0.18 0.02 270;
+    --card: 0.99 0.005 290;
+    --card-foreground: 0.18 0.02 270;
+    --popover: 0.99 0.005 290;
+    --popover-foreground: 0.18 0.02 270;
 
-    /* Student console primary — fresh teal */
-    --primary: 0.58 0.14 195;
+    /* Primary — soft violet/lavender */
+    --primary: 0.62 0.16 290;
     --primary-foreground: 0.99 0 0;
 
-    --secondary: 0.93 0.02 195;
-    --secondary-foreground: 0.25 0.05 200;
+    --secondary: 0.93 0.04 290;
+    --secondary-foreground: 0.28 0.08 290;
 
-    --muted: 0.93 0.01 250;
-    --muted-foreground: 0.52 0.02 250;
+    --muted: 0.94 0.015 290;
+    --muted-foreground: 0.5 0.03 270;
 
-    --accent: 0.92 0.04 195;
-    --accent-foreground: 0.25 0.08 195;
+    --accent: 0.91 0.06 290;
+    --accent-foreground: 0.28 0.1 290;
 
     --destructive: 0.55 0.2 27;
     --destructive-foreground: 0.99 0 0;
@@ -56,33 +56,42 @@
     --success: 0.62 0.16 145;
     --success-foreground: 0.99 0 0;
 
-    --border: 0.88 0.01 250;
-    --input: 0.88 0.01 250;
-    --ring: 0.58 0.14 195;
+    --border: 0.88 0.02 290;
+    --input: 0.88 0.02 290;
+    --ring: 0.62 0.16 290;
 
-    --radius: 0.75rem;
+    --radius: 0.9rem;
 
-    --chart-1: 0.58 0.14 195;
-    --chart-2: 0.62 0.16 145;
-    --chart-3: 0.72 0.14 58;
-    --chart-4: 0.55 0.18 300;
-    --chart-5: 0.55 0.2 27;
+    --chart-1: 0.62 0.16 290;
+    --chart-2: 0.72 0.14 160;
+    --chart-3: 0.75 0.14 52;
+    --chart-4: 0.72 0.16 350;
+    --chart-5: 0.72 0.14 220;
 
-    --sidebar: 0.97 0.006 250;
-    --sidebar-foreground: 0.16 0.012 250;
-    --sidebar-primary: 0.58 0.14 195;
+    --sidebar: 0.96 0.015 290;
+    --sidebar-foreground: 0.18 0.02 270;
+    --sidebar-primary: 0.62 0.16 290;
     --sidebar-primary-foreground: 0.99 0 0;
-    --sidebar-accent: 0.92 0.04 195;
-    --sidebar-accent-foreground: 0.25 0.08 195;
-    --sidebar-border: 0.88 0.01 250;
-    --sidebar-ring: 0.58 0.14 195;
+    --sidebar-accent: 0.91 0.06 290;
+    --sidebar-accent-foreground: 0.28 0.1 290;
+    --sidebar-border: 0.88 0.02 290;
+    --sidebar-ring: 0.62 0.16 290;
 
-    /* Teacher console accent tokens */
-    --teacher-primary: 0.62 0.14 52;
+    /* Pastel palette tokens */
+    --pastel-pink: 0.93 0.05 350;
+    --pastel-mint: 0.93 0.06 160;
+    --pastel-peach: 0.94 0.05 52;
+    --pastel-sky: 0.93 0.05 220;
+    --pastel-lemon: 0.97 0.06 100;
+    --pastel-lavender: 0.93 0.06 290;
+    --pastel-coral: 0.92 0.07 20;
+
+    /* Teacher console accent tokens (warm peach) */
+    --teacher-primary: 0.65 0.14 52;
     --teacher-primary-fg: 0.99 0 0;
-    --teacher-surface: 0.16 0.025 52;
-    --teacher-surface-fg: 0.98 0.005 52;
-    --teacher-accent: 0.92 0.06 52;
+    --teacher-surface: 0.97 0.03 52;
+    --teacher-surface-fg: 0.22 0.05 52;
+    --teacher-accent: 0.93 0.06 52;
     --teacher-accent-fg: 0.3 0.08 52;
   }
 
@@ -93,5 +102,158 @@
   body {
     @apply bg-background text-foreground font-body;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* ─── Pastel gradient page backgrounds ─────────────────────────────────── */
+.page-gradient-student {
+  background: linear-gradient(
+    135deg,
+    oklch(0.96 0.04 290) 0%,
+    oklch(0.96 0.04 220) 50%,
+    oklch(0.96 0.05 160) 100%
+  );
+  min-height: 100vh;
+}
+
+.page-gradient-teacher {
+  background: linear-gradient(
+    135deg,
+    oklch(0.97 0.03 52) 0%,
+    oklch(0.96 0.04 350) 50%,
+    oklch(0.96 0.04 290) 100%
+  );
+  min-height: 100vh;
+}
+
+.page-gradient-entry {
+  background: linear-gradient(
+    135deg,
+    oklch(0.95 0.05 350) 0%,
+    oklch(0.95 0.05 290) 35%,
+    oklch(0.95 0.05 220) 65%,
+    oklch(0.95 0.05 160) 100%
+  );
+  min-height: 100vh;
+}
+
+/* ─── Pastel card variants ────────────────────────────────────────────────── */
+.card-pastel-pink {
+  background: oklch(0.95 0.04 350);
+  border-color: oklch(0.87 0.06 350);
+}
+.card-pastel-mint {
+  background: oklch(0.95 0.04 160);
+  border-color: oklch(0.87 0.06 160);
+}
+.card-pastel-peach {
+  background: oklch(0.95 0.04 52);
+  border-color: oklch(0.87 0.06 52);
+}
+.card-pastel-sky {
+  background: oklch(0.95 0.04 220);
+  border-color: oklch(0.87 0.06 220);
+}
+.card-pastel-lavender {
+  background: oklch(0.95 0.04 290);
+  border-color: oklch(0.87 0.06 290);
+}
+.card-pastel-lemon {
+  background: oklch(0.97 0.05 100);
+  border-color: oklch(0.89 0.07 100);
+}
+
+/* ─── Celebration Overlay Animations ─────────────────────────────────────── */
+@keyframes balloon-rise {
+  0% {
+    transform: translateY(0) rotate(-5deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-45vh) rotate(5deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-110vh) rotate(-3deg);
+    opacity: 0;
+  }
+}
+
+@keyframes firework-explode {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow:
+      0 -30px 0 2px #ffe66d, 21px -21px 0 2px #ff6b6b,
+      30px 0 0 2px #4ecdc4, 21px 21px 0 2px #a8e6cf,
+      0 30px 0 2px #ff8e53, -21px 21px 0 2px #bdb2ff,
+      -30px 0 0 2px #ffb3c1, -21px -21px 0 2px #a0c4ff;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+    box-shadow:
+      0 -55px 0 0 transparent, 39px -39px 0 0 transparent,
+      55px 0 0 0 transparent, 39px 39px 0 0 transparent,
+      0 55px 0 0 transparent, -39px 39px 0 0 transparent,
+      -55px 0 0 0 transparent, -39px -39px 0 0 transparent;
+  }
+}
+
+@keyframes celebration-pop {
+  0% {
+    transform: scale(0.5) translateY(20px);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08) translateY(-4px);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.97) translateY(0);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.balloon-float {
+  animation: balloon-rise ease-in forwards;
+}
+
+.firework-burst {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffe66d;
+  animation: firework-explode 0.8s ease-out forwards;
+  animation-iteration-count: 2;
+}
+
+.celebration-message {
+  animation: celebration-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ─── Print styles for certificates ──────────────────────────────────────── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .certificate-printable,
+  .certificate-printable * {
+    visibility: visible;
+  }
+  .certificate-printable {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
   }
 }
