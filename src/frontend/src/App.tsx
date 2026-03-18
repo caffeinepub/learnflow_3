@@ -88,9 +88,50 @@ import {
 
 const STUDENT_NAME_KEY = "eduloom_student_name";
 const PROFILE_KEY = "eduloom_student_profile";
+const ROSTER_KEY = "eduloom_student_roster";
+const TEACHER_EMAIL_KEY = "eduloom_teacher_email";
+
+const DEFAULT_STUDENTS = [
+  { id: "1", registerNo: "128139017", name: "VINAYA K V", email: "" },
+  { id: "2", registerNo: "128139015", name: "THEERTHA PRAJITH", email: "" },
+  { id: "3", registerNo: "128139014", name: "SRIHARINI G", email: "" },
+  { id: "4", registerNo: "128139013", name: "SHIVANI G N", email: "" },
+  { id: "5", registerNo: "128139012", name: "SHAKTHI G", email: "" },
+  { id: "6", registerNo: "128139011", name: "SWETHA S", email: "" },
+  { id: "7", registerNo: "128139010", name: "RUTHRA MEENA S", email: "" },
+  { id: "8", registerNo: "128139009", name: "RAJALAKSHMI A P", email: "" },
+  { id: "9", registerNo: "128139008", name: "MAHALAXMI M", email: "" },
+  { id: "10", registerNo: "128139006", name: "DHIVYADHARSHINI M", email: "" },
+  { id: "11", registerNo: "128139005", name: "KOWSALYA K", email: "" },
+  { id: "12", registerNo: "128139004", name: "KIRUSHTHIKA K", email: "" },
+  { id: "13", registerNo: "128139003", name: "MITHILA K R", email: "" },
+  { id: "14", registerNo: "128139002", name: "JESMINA BANU J", email: "" },
+  { id: "15", registerNo: "128139001", name: "GEETHA R", email: "" },
+  { id: "16", registerNo: "127139011", name: "KURAL OLY T", email: "" },
+];
+
+interface RosterStudent {
+  id: string;
+  registerNo: string;
+  name: string;
+  email: string;
+}
+
+function getRoster(): RosterStudent[] {
+  try {
+    const s = localStorage.getItem(ROSTER_KEY);
+    if (s) return JSON.parse(s);
+  } catch {}
+  return DEFAULT_STUDENTS;
+}
+
+function saveRoster(roster: RosterStudent[]): void {
+  localStorage.setItem(ROSTER_KEY, JSON.stringify(roster));
+}
 
 interface StudentProfile {
   name: string;
+  email: string;
   registerNumber: string;
   year: string;
   semester: string;
@@ -128,6 +169,7 @@ type StudentView =
 type TeacherView =
   | { page: "dashboard" }
   | { page: "materials" }
+  | { page: "students" }
   | { page: "course-editor"; courseId: bigint }
   | { page: "lesson-editor"; lessonId: bigint; courseId: bigint }
   | { page: "create-course" };
@@ -135,7 +177,7 @@ type TeacherView =
 type ConsoleMode = "entry" | "student" | "teacher";
 
 export default function App() {
-  const { actor } = useActor();
+  const { actor, isFetching: isActorLoading } = useActor();
   const [mode, setMode] = useState<ConsoleMode>("entry");
   const [studentName, setStudentName] = useState<string>("");
 
@@ -170,7 +212,11 @@ export default function App() {
         />
       )}
       {mode === "teacher" && (
-        <TeacherConsole actor={actor} onLogout={exitToEntry} />
+        <TeacherConsole
+          actor={actor}
+          isActorLoading={isActorLoading}
+          onLogout={exitToEntry}
+        />
       )}
     </>
   );
@@ -724,6 +770,7 @@ function StudentProfilePage({
   onSave: (p: StudentProfile) => void;
 }) {
   const [name, setName] = useState(profile?.name ?? studentName ?? "");
+  const [email, setEmail] = useState(profile?.email ?? "");
   const [registerNumber, setRegisterNumber] = useState(
     profile?.registerNumber ?? "",
   );
@@ -743,6 +790,7 @@ function StudentProfilePage({
   function handleSave() {
     const p: StudentProfile = {
       name,
+      email,
       registerNumber,
       year,
       semester,
@@ -826,6 +874,17 @@ function StudentProfilePage({
                 placeholder="e.g. Priya Sharma"
                 className="mt-1.5 font-ui"
                 data-ocid="student.profile.name.input"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="font-ui">Official Email Address</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="yourname@institution.edu"
+                className="mt-1.5 font-ui"
+                data-ocid="student.profile.email.input"
               />
             </div>
             <div className="col-span-2">
@@ -923,15 +982,63 @@ function StudentProfilePage({
 
 function TeacherConsole({
   actor,
+  isActorLoading,
   onLogout,
 }: {
   actor: ReturnType<typeof useActor>["actor"];
+  isActorLoading?: boolean;
   onLogout: () => void;
 }) {
   const [view, setView] = useState<TeacherView>({ page: "dashboard" });
+  const [teacherEmail, setTeacherEmail] = useState<string>(() => {
+    return localStorage.getItem(TEACHER_EMAIL_KEY) ?? "";
+  });
+
+  function handleTeacherEmailBlur() {
+    localStorage.setItem(TEACHER_EMAIL_KEY, teacherEmail);
+    if (teacherEmail) toast.success("Email saved!");
+  }
 
   return (
     <div className="min-h-screen page-gradient-teacher flex flex-col">
+      {/* Backend connection banner */}
+      {!actor && isActorLoading && (
+        <div className="bg-amber-100 border-b border-amber-300 px-4 py-2 text-center text-sm text-amber-800 font-ui flex items-center justify-center gap-2">
+          <svg
+            className="animate-spin h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v8z"
+            />
+          </svg>
+          Connecting to server... Courses will sync once connected.
+        </div>
+      )}
+      {!actor && !isActorLoading && (
+        <div className="bg-red-100 border-b border-red-300 px-4 py-2 text-center text-sm text-red-800 font-ui flex items-center justify-center gap-2">
+          ⚠ Could not connect to server.{" "}
+          <button
+            type="button"
+            className="underline font-semibold"
+            onClick={() => window.location.reload()}
+          >
+            Click to retry
+          </button>
+        </div>
+      )}
       {/* Teacher Navbar — warm dark surface */}
       <header
         className="sticky top-0 z-40 shadow-sm"
@@ -1000,9 +1107,52 @@ function TeacherConsole({
                 <FileText className="h-4 w-4" /> Materials
               </span>
             </button>
+            <button
+              type="button"
+              onClick={() => setView({ page: "students" })}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium font-ui transition-colors"
+              style={{
+                background:
+                  view.page === "students"
+                    ? "oklch(0.62 0.14 52 / 0.2)"
+                    : "transparent",
+                color:
+                  view.page === "students"
+                    ? "oklch(0.35 0.12 52)"
+                    : "oklch(0.5 0.06 52)",
+              }}
+              data-ocid="teacher.nav.students.link"
+            >
+              <span className="flex items-center gap-1.5">
+                <Users className="h-4 w-4" /> Students
+              </span>
+            </button>
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-1.5">
+              <label
+                htmlFor="teacher-email-input"
+                className="text-xs font-ui"
+                style={{ color: "oklch(0.5 0.06 52)" }}
+              >
+                Your Email:
+              </label>
+              <Input
+                type="email"
+                value={teacherEmail}
+                onChange={(e) => setTeacherEmail(e.target.value)}
+                onBlur={handleTeacherEmailBlur}
+                placeholder="official@institution.edu"
+                className="h-7 text-xs w-48 font-ui"
+                style={{
+                  borderColor: "oklch(0.87 0.05 52)",
+                  background: "oklch(0.97 0.03 52)",
+                }}
+                id="teacher-email-input"
+                data-ocid="teacher.email.input"
+              />
+            </div>
             <Badge
               variant="outline"
               className="border font-ui text-xs font-semibold"
@@ -1050,6 +1200,7 @@ function TeacherConsole({
         {view.page === "materials" && (
           <MaterialsPage actor={actor} setView={setView} />
         )}
+        {view.page === "students" && <StudentRosterPage />}
         {view.page === "create-course" && (
           <CreateCoursePage actor={actor} setView={setView} />
         )}
@@ -1102,12 +1253,6 @@ function getLocalCourses(): LocalCourse[] {
     if (stored) return JSON.parse(stored) as LocalCourse[];
   } catch {}
   return [];
-}
-
-function saveLocalCourse(course: LocalCourse): void {
-  const courses = getLocalCourses();
-  courses.push(course);
-  localStorage.setItem(LOCAL_COURSES_KEY, JSON.stringify(courses));
 }
 
 function updateLocalCourse(id: number, updates: Partial<LocalCourse>): void {
@@ -1557,26 +1702,49 @@ function MaterialsPage({
       const isBackendCourse = !getLocalCourses().some(
         (c) => c.id === courseNumId,
       );
-      if (isBackendCourse && actor) {
-        await actor.batchCreateLessons(
-          course.course.id,
-          allItems.map((item) => ({
-            title: item.title,
-            content: item.content,
-            orderIndex: item.orderIndex,
-          })),
-        );
+      if (actor) {
+        let backendCourseId = course.course.id;
+        // If it's a local course, sync it to backend first
+        if (!isBackendCourse) {
+          const lc = getLocalCourses().find((c) => c.id === courseNumId);
+          if (lc) {
+            try {
+              const syncResult = await actor.createCourse(
+                lc.title,
+                lc.description || "",
+              );
+              if ("ok" in syncResult) {
+                await actor.publishCourse(syncResult.ok.id, true);
+                backendCourseId = syncResult.ok.id;
+                deleteLocalCourse(courseNumId);
+                queryClient.invalidateQueries({ queryKey: ["all-courses"] });
+              }
+            } catch (_eSync) {
+              toast.error(
+                "Please sync the course first, then generate activities.",
+              );
+              return;
+            }
+          }
+        }
+        try {
+          await actor.batchCreateLessons(
+            backendCourseId,
+            allItems.map((item) => ({
+              title: item.title,
+              content: item.content,
+              orderIndex: item.orderIndex,
+            })),
+          );
+        } catch (_eBatch) {
+          toast.error(
+            "Failed to save lessons to backend. Please check connection and try again.",
+          );
+          return;
+        }
       } else {
-        const newLessons: LocalLesson[] = allItems.map((item, i) => ({
-          id: Date.now() + i,
-          courseId: courseNumId,
-          title: item.title,
-          content: item.content,
-          orderIndex: Number(item.orderIndex),
-          type: detectTypeFromTitle(item.title),
-        }));
-        const existing = getLocalLessons();
-        saveLocalLessons([...existing, ...newLessons]);
+        toast.error("Not connected. Please refresh and try again.");
+        return;
       }
       saveMaterials(
         materials.map((mat) =>
@@ -2119,8 +2287,8 @@ function StudentDashboard({
   ];
 
   const backendPublishedQuery = useQuery({
-    queryKey: ["published-courses"],
-    queryFn: () => actor!.getPublishedCourses(),
+    queryKey: ["all-courses"],
+    queryFn: () => actor!.getAllCourses(),
     enabled: !!actor,
   });
 
@@ -2399,9 +2567,17 @@ function ExplorePage({
 }) {
   const qc = useQueryClient();
   const backendPublishedBrowse = useQuery({
-    queryKey: ["published-courses"],
-    queryFn: () => actor!.getPublishedCourses(),
+    queryKey: ["all-courses"],
+    queryFn: async () => {
+      try {
+        return await actor!.getAllCourses();
+      } catch {
+        return [];
+      }
+    },
     enabled: !!actor,
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const publishedLocalBrowse = getLocalCourses()
@@ -2500,9 +2676,17 @@ function ExplorePage({
         </div>
       ) : (coursesQuery.data ?? []).length === 0 ? (
         <div className="text-center py-16" data-ocid="explore.empty_state">
-          <p className="text-muted-foreground font-ui">
+          <p className="text-muted-foreground font-ui mb-4">
             No courses available yet.
           </p>
+          <button
+            type="button"
+            onClick={() => backendPublishedBrowse.refetch()}
+            className="text-sm bg-teal-500 text-white px-4 py-2 rounded-lg font-ui hover:bg-teal-600 transition-colors"
+            data-ocid="explore.refresh.button"
+          >
+            Refresh Courses
+          </button>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2580,9 +2764,8 @@ function CoursePage({
   onBack?: () => void;
 }) {
   const coursesQuery = useQuery({
-    queryKey: isTeacher ? ["all-courses"] : ["published-courses"],
-    queryFn: () =>
-      isTeacher ? actor!.getAllCourses() : actor!.getPublishedCourses(),
+    queryKey: ["all-courses"],
+    queryFn: () => actor!.getAllCourses(),
     enabled: !!actor,
   });
   const lessonsQuery = useQuery({
@@ -4862,6 +5045,356 @@ function PostBubble({
   );
 }
 
+// ─── Student Roster Page ──────────────────────────────────────────────────────
+function StudentRosterPage() {
+  const [roster, setRoster] = useState<RosterStudent[]>(() => {
+    const stored = localStorage.getItem(ROSTER_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {}
+    }
+    return DEFAULT_STUDENTS;
+  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRegNo, setEditRegNo] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newRegNo, setNewRegNo] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+
+  function startEdit(s: RosterStudent) {
+    setEditingId(s.id);
+    setEditName(s.name);
+    setEditRegNo(s.registerNo);
+    setEditEmail(s.email);
+  }
+
+  function saveEdit() {
+    if (!editName.trim() || !editRegNo.trim()) return;
+    const updated = roster.map((s) =>
+      s.id === editingId
+        ? {
+            ...s,
+            name: editName.trim(),
+            registerNo: editRegNo.trim(),
+            email: editEmail.trim(),
+          }
+        : s,
+    );
+    setRoster(updated);
+    saveRoster(updated);
+    setEditingId(null);
+    toast.success("Student updated!");
+  }
+
+  function deleteStudent(id: string) {
+    const updated = roster.filter((s) => s.id !== id);
+    setRoster(updated);
+    saveRoster(updated);
+    toast.success("Student removed.");
+  }
+
+  function addStudent() {
+    if (!newName.trim() || !newRegNo.trim()) {
+      toast.error("Please enter both name and register number.");
+      return;
+    }
+    const newStudent: RosterStudent = {
+      id: String(Date.now()),
+      registerNo: newRegNo.trim(),
+      name: newName.trim(),
+      email: newEmail.trim(),
+    };
+    const updated = [...roster, newStudent];
+    setRoster(updated);
+    saveRoster(updated);
+    setNewName("");
+    setNewRegNo("");
+    setNewEmail("");
+    toast.success("Student added!");
+  }
+
+  function exportCSV() {
+    const rows = [
+      ["#", "Register No", "Name", "Email"],
+      ...roster.map((s, i) => [String(i + 1), s.registerNo, s.name, s.email]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "eduloom-roster.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Roster exported!");
+  }
+
+  function exportBackup() {
+    const courses = getLocalCourses();
+    const data = { courses, roster, exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `eduloom-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Backup exported!");
+  }
+
+  return (
+    <div className="space-y-6" data-ocid="roster.section">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1
+            className="font-display text-3xl font-bold"
+            style={{ color: "oklch(0.35 0.12 52)" }}
+          >
+            Student Roster
+          </h1>
+          <p className="text-muted-foreground font-ui mt-1">
+            {roster.length} students in your class
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportCSV}
+            data-ocid="roster.export_button"
+            className="font-ui"
+            style={{
+              borderColor: "oklch(0.62 0.14 52)",
+              color: "oklch(0.35 0.12 52)",
+            }}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportBackup}
+            data-ocid="roster.backup_button"
+            className="font-ui"
+            style={{
+              borderColor: "oklch(0.62 0.14 52)",
+              color: "oklch(0.35 0.12 52)",
+            }}
+          >
+            Export Backup
+          </Button>
+        </div>
+      </div>
+
+      {/* Roster Table */}
+      <Card
+        className="shadow-card"
+        style={{ border: "1px solid oklch(0.87 0.05 52)" }}
+      >
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm font-ui" data-ocid="roster.table">
+              <thead>
+                <tr
+                  style={{
+                    background: "oklch(0.95 0.04 52)",
+                    borderBottom: "1px solid oklch(0.87 0.05 52)",
+                  }}
+                >
+                  <th className="text-left px-4 py-3 font-semibold text-muted-foreground w-10">
+                    #
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-muted-foreground">
+                    Register No
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-muted-foreground">
+                    Student Name
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-muted-foreground hidden md:table-cell">
+                    Email
+                  </th>
+                  <th className="text-right px-4 py-3 font-semibold text-muted-foreground">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {roster.map((s, idx) => (
+                  <tr
+                    key={s.id}
+                    data-ocid={`roster.row.${idx + 1}`}
+                    style={{ borderBottom: "1px solid oklch(0.93 0.03 52)" }}
+                    className="hover:bg-amber-50/40 transition-colors"
+                  >
+                    {editingId === s.id ? (
+                      <>
+                        <td className="px-4 py-2 text-muted-foreground">
+                          {idx + 1}
+                        </td>
+                        <td className="px-4 py-2">
+                          <Input
+                            value={editRegNo}
+                            onChange={(e) => setEditRegNo(e.target.value)}
+                            className="h-8 text-xs font-ui w-32"
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <Input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="h-8 text-xs font-ui w-48"
+                          />
+                        </td>
+                        <td className="px-4 py-2 hidden md:table-cell">
+                          <Input
+                            type="email"
+                            value={editEmail}
+                            onChange={(e) => setEditEmail(e.target.value)}
+                            placeholder="email@institution.edu"
+                            className="h-8 text-xs font-ui w-48"
+                          />
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={saveEdit}
+                              style={{
+                                background: "oklch(0.62 0.14 52)",
+                                color: "white",
+                              }}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => setEditingId(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {idx + 1}
+                        </td>
+                        <td
+                          className="px-4 py-3 font-mono text-xs font-semibold"
+                          style={{ color: "oklch(0.45 0.10 52)" }}
+                        >
+                          {s.registerNo}
+                        </td>
+                        <td className="px-4 py-3 font-medium">{s.name}</td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs hidden md:table-cell">
+                          {s.email || (
+                            <span className="italic text-muted-foreground/50">
+                              not set
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs font-ui"
+                              onClick={() => startEdit(s)}
+                              data-ocid={`roster.edit_button.${idx + 1}`}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs font-ui text-destructive hover:text-destructive"
+                              onClick={() => deleteStudent(s.id)}
+                              data-ocid={`roster.delete_button.${idx + 1}`}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add Student Form */}
+      <Card
+        className="shadow-card"
+        style={{ border: "1px solid oklch(0.87 0.05 52)" }}
+      >
+        <CardHeader>
+          <CardTitle
+            className="font-display text-base"
+            style={{ color: "oklch(0.35 0.12 52)" }}
+          >
+            Add New Student
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label className="font-ui text-xs">Register No</Label>
+              <Input
+                value={newRegNo}
+                onChange={(e) => setNewRegNo(e.target.value)}
+                placeholder="e.g. 128139018"
+                className="mt-1 h-9 font-ui text-sm"
+                data-ocid="roster.add.register_input"
+              />
+            </div>
+            <div>
+              <Label className="font-ui text-xs">Student Name</Label>
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g. ARJUN KUMAR"
+                className="mt-1 h-9 font-ui text-sm"
+                data-ocid="roster.add.name_input"
+              />
+            </div>
+            <div>
+              <Label className="font-ui text-xs">Email (optional)</Label>
+              <Input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="student@institution.edu"
+                className="mt-1 h-9 font-ui text-sm"
+                data-ocid="roster.add.email_input"
+              />
+            </div>
+          </div>
+          <Button
+            className="mt-4 font-ui"
+            onClick={addStudent}
+            data-ocid="roster.add_button"
+            style={{ background: "oklch(0.62 0.14 52)", color: "white" }}
+          >
+            <Plus className="h-4 w-4 mr-1.5" /> Add Student
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ─── Teacher Dashboard ────────────────────────────────────────────────────────
 function TeacherDashboard({
   actor,
@@ -4871,6 +5404,7 @@ function TeacherDashboard({
   setView: (v: TeacherView) => void;
 }) {
   const qc = useQueryClient();
+  const { isFetching: isActorFetching } = useActor();
   const backendCoursesQuery = useQuery({
     queryKey: ["all-courses"],
     queryFn: () => actor!.getAllCourses(),
@@ -4914,6 +5448,146 @@ function TeacherDashboard({
     queryFn: () => actor!.getLeaderboard(),
     enabled: !!actor,
   });
+
+  // Auto-sync local courses to backend
+  // Helper: publish with retries to ensure course visibility to students
+  const publishWithRetry = async (
+    courseId: bigint,
+    maxRetries = 5,
+  ): Promise<void> => {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const res = await actor!.publishCourse(courseId, true);
+        if ("ok" in res || res === undefined || res === null) return;
+        if ("err" in res) throw new Error(String((res as any).err));
+      } catch (e) {
+        if (attempt === maxRetries - 1) throw e;
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+  };
+
+  const syncLocalCourseToBackend = async (localId: number) => {
+    if (!actor) {
+      toast.error("Not connected to backend.", {
+        action: { label: "Retry", onClick: () => window.location.reload() },
+      });
+      return;
+    }
+    const lc = getLocalCourses().find((c) => c.id === localId);
+    if (!lc) return;
+    try {
+      const result = await actor.createCourse(lc.title, lc.description || "");
+      if ("ok" in result) {
+        // Remove from localStorage immediately - course is confirmed on backend
+        deleteLocalCourse(localId);
+        qc.invalidateQueries({ queryKey: ["local-courses"] });
+        // Publish with retries
+        await publishWithRetry(result.ok.id);
+        // Migrate local lessons for this course to backend
+        const localLessons1 = getLocalLessons().filter(
+          (l) => l.courseId === localId,
+        );
+        if (localLessons1.length > 0) {
+          try {
+            await actor.batchCreateLessons(
+              result.ok.id,
+              localLessons1.map((l, i) => ({
+                title: l.title,
+                content: l.content,
+                orderIndex: BigInt(l.orderIndex ?? i),
+              })),
+            );
+            saveLocalLessons(
+              getLocalLessons().filter((l) => l.courseId !== localId),
+            );
+          } catch (_e2) {
+            // non-fatal
+          }
+        }
+        qc.invalidateQueries({ queryKey: ["all-courses"] });
+        qc.refetchQueries({ queryKey: ["all-courses"] });
+        qc.refetchQueries({ queryKey: ["local-courses"] });
+        toast.success("Course synced! Students can now see it.");
+      }
+    } catch (_e) {
+      toast.error("Sync failed. Please check your connection.");
+    }
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: publishWithRetry is stable reference
+  useEffect(() => {
+    if (!actor) return;
+    const localCourses = getLocalCourses();
+    if (localCourses.length === 0) return;
+    const syncCourses = async () => {
+      let synced = 0;
+      for (const lc of localCourses) {
+        try {
+          const result = await actor.createCourse(
+            lc.title,
+            lc.description || "",
+          );
+          if ("ok" in result) {
+            // Remove from localStorage immediately - course is confirmed on backend
+            deleteLocalCourse(lc.id);
+            synced++;
+            // Publish with retries
+            await publishWithRetry(result.ok.id);
+            // Migrate local lessons for this course to backend
+            const localLessonsSync = getLocalLessons().filter(
+              (ll) => ll.courseId === lc.id,
+            );
+            if (localLessonsSync.length > 0) {
+              try {
+                await actor.batchCreateLessons(
+                  result.ok.id,
+                  localLessonsSync.map((ll, i) => ({
+                    title: ll.title,
+                    content: ll.content,
+                    orderIndex: BigInt(ll.orderIndex ?? i),
+                  })),
+                );
+                saveLocalLessons(
+                  getLocalLessons().filter((ll) => ll.courseId !== lc.id),
+                );
+              } catch (_e3) {
+                // non-fatal
+              }
+            }
+          }
+        } catch {
+          // ignore individual failures
+        }
+      }
+      if (synced > 0) {
+        qc.invalidateQueries({ queryKey: ["all-courses"] });
+        qc.invalidateQueries({ queryKey: ["local-courses"] });
+        qc.refetchQueries({ queryKey: ["all-courses"] });
+        qc.refetchQueries({ queryKey: ["local-courses"] });
+        toast.success(
+          `${synced} course(s) synced to cloud — students can now see them.`,
+        );
+      }
+      // Fix 2: Auto-publish any backend courses that are stuck as unpublished
+      try {
+        const allBackend = await actor.getAllCourses();
+        const unpublished = allBackend.filter(
+          (cws: any) => !cws.course.isPublished,
+        );
+        for (const cws of unpublished) {
+          try {
+            await actor.publishCourse(cws.course.id, true);
+          } catch {}
+        }
+        if (unpublished.length > 0) {
+          qc.invalidateQueries({ queryKey: ["all-courses"] });
+        }
+      } catch {}
+    };
+    syncCourses();
+    // biome-ignore lint/correctness/useExhaustiveDependencies: publishWithRetry is stable
+  }, [actor, qc]);
 
   const publishMutation = useMutation({
     mutationFn: async ({
@@ -5107,6 +5781,27 @@ function TeacherDashboard({
                       <span>{Number(cws.lessonCount)} lessons</span>
                       <span>{Number(cws.enrollmentCount)} students</span>
                     </div>
+                    {String(cws.course.teacherId) === "local" && (
+                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-2">
+                        <span className="text-xs text-amber-700 font-ui">
+                          ⚠ Local only — students on other devices cannot see
+                          this
+                        </span>
+                        <button
+                          type="button"
+                          className="text-xs bg-amber-500 text-white px-2 py-1 rounded font-ui hover:bg-amber-600"
+                          onClick={() =>
+                            syncLocalCourseToBackend((cws as any)._localId)
+                          }
+                          data-ocid="teacher.courses.sync.button"
+                          disabled={isActorFetching && !actor}
+                        >
+                          {isActorFetching && !actor
+                            ? "Connecting..."
+                            : "Sync to cloud"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="flex items-center gap-2">
@@ -5246,42 +5941,39 @@ function CreateCoursePage({
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (actor) {
-        try {
-          const result = await actor.createCourse(
-            title.trim(),
-            description.trim(),
-          );
-          if ("ok" in result) {
-            await actor.publishCourse(result.ok.id, true);
-            localStorage.setItem(
-              `eduloom_meta_${result.ok.id}`,
-              JSON.stringify({
-                section: section.trim(),
-                subject: subject.trim(),
-                room: room.trim(),
-                bannerColor,
-              }),
-            );
-            return result.ok as any;
-          }
-        } catch (_e) {
-          // fall through to local
-        }
+      if (!actor) {
+        throw new Error(
+          "Not connected to server. Please wait for the connection to be established and try again.",
+        );
       }
-      const newCourse: LocalCourse = {
-        id: Date.now(),
-        title: title.trim(),
-        description: description.trim(),
-        section: section.trim(),
-        subject: subject.trim(),
-        room: room.trim(),
-        bannerColor,
-        isPublished: false,
-        createdAt: Date.now(),
-      };
-      saveLocalCourse(newCourse);
-      return newCourse;
+      if (actor) {
+        const result = await actor.createCourse(
+          title.trim(),
+          description.trim(),
+        );
+        if ("ok" in result) {
+          // Publish with retries
+          for (let _attempt = 0; _attempt < 5; _attempt++) {
+            try {
+              await actor.publishCourse(result.ok.id, true);
+              break;
+            } catch {
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+          }
+          localStorage.setItem(
+            `eduloom_meta_${result.ok.id}`,
+            JSON.stringify({
+              section: section.trim(),
+              subject: subject.trim(),
+              room: room.trim(),
+              bannerColor,
+            }),
+          );
+          return result.ok as any;
+        }
+        throw new Error("Failed to create course on server.");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["all-courses"] });
@@ -5289,8 +5981,12 @@ function CreateCoursePage({
       toast.success("Course created successfully!");
       setView({ page: "dashboard" });
     },
-    onError: () => {
-      toast.error("Failed to create course. Please try again.");
+    onError: (err: unknown) => {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Failed to create course. Please try again.";
+      toast.error(msg);
     },
   });
 
@@ -5935,59 +6631,94 @@ function CourseEditor({
 
         {/* ── People Tab ── */}
         <TabsContent value="people" className="space-y-4">
-          <h2 className="font-ui font-semibold">Enrolled Students</h2>
-          {leaderboardQuery.isLoading ? (
-            <div
-              data-ocid="course_editor.people.loading_state"
-              className="space-y-3"
-            >
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-14 rounded-xl" />
-              ))}
-            </div>
-          ) : (leaderboardQuery.data ?? []).length === 0 ? (
-            <div
-              className="text-center py-10 border border-dashed rounded-xl"
-              data-ocid="course_editor.people.empty_state"
-            >
-              <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground font-ui text-sm">
-                No students enrolled yet.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {(leaderboardQuery.data ?? []).map((entry, i) => (
-                <Card
-                  key={String(entry.studentId)}
-                  className="shadow-card"
-                  data-ocid={`course_editor.people.item.${i + 1}`}
-                >
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold font-ui text-white shrink-0"
-                      style={{ background: bannerColor }}
-                    >
-                      {entry.name.slice(0, 1).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-ui font-semibold text-sm truncate">
-                        {entry.name}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="secondary" className="font-ui text-xs">
-                        {Number(entry.totalXp)} XP
-                      </Badge>
-                      <span className="font-ui text-xs text-muted-foreground">
-                        {Number(entry.completedLessons)} lessons
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          {(() => {
+            const roster = getRoster();
+            const leaderboard = leaderboardQuery.data ?? [];
+            const xpMap = new Map(
+              leaderboard.map((e) => [e.name.toLowerCase(), e]),
+            );
+            return (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-ui font-semibold">
+                    Class List ({roster.length} students)
+                  </h2>
+                </div>
+                {leaderboardQuery.isLoading ? (
+                  <div
+                    data-ocid="course_editor.people.loading_state"
+                    className="space-y-3"
+                  >
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-14 rounded-xl" />
+                    ))}
+                  </div>
+                ) : roster.length === 0 ? (
+                  <div
+                    className="text-center py-10 border border-dashed rounded-xl"
+                    data-ocid="course_editor.people.empty_state"
+                  >
+                    <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground font-ui text-sm">
+                      No students in the roster yet.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {roster.map((s, i) => {
+                      const lb = xpMap.get(s.name.toLowerCase());
+                      return (
+                        <Card
+                          key={s.id}
+                          className="shadow-card"
+                          data-ocid={`course_editor.people.item.${i + 1}`}
+                        >
+                          <CardContent className="p-4 flex items-center gap-4">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold font-ui text-white shrink-0"
+                              style={{ background: bannerColor }}
+                            >
+                              {s.name.slice(0, 1).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-ui font-semibold text-sm truncate">
+                                {s.name}
+                              </p>
+                              <p className="font-mono text-xs text-muted-foreground">
+                                {s.registerNo}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {lb ? (
+                                <>
+                                  <Badge
+                                    variant="secondary"
+                                    className="font-ui text-xs"
+                                  >
+                                    {Number(lb.totalXp)} XP
+                                  </Badge>
+                                  <span className="font-ui text-xs text-muted-foreground">
+                                    {Number(lb.completedLessons)} lessons
+                                  </span>
+                                </>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="font-ui text-xs text-muted-foreground"
+                                >
+                                  Not enrolled
+                                </Badge>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </TabsContent>
       </Tabs>
     </div>
