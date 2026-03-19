@@ -177,7 +177,7 @@ type TeacherView =
 type ConsoleMode = "entry" | "student" | "teacher";
 
 export default function App() {
-  const { actor, isFetching: isActorLoading } = useActor();
+  const { actor } = useActor();
   const [mode, setMode] = useState<ConsoleMode>("entry");
   const [studentName, setStudentName] = useState<string>("");
 
@@ -212,11 +212,7 @@ export default function App() {
         />
       )}
       {mode === "teacher" && (
-        <TeacherConsole
-          actor={actor}
-          isActorLoading={isActorLoading}
-          onLogout={exitToEntry}
-        />
+        <TeacherConsole actor={actor} onLogout={exitToEntry} />
       )}
     </>
   );
@@ -982,11 +978,9 @@ function StudentProfilePage({
 
 function TeacherConsole({
   actor,
-  isActorLoading,
   onLogout,
 }: {
   actor: ReturnType<typeof useActor>["actor"];
-  isActorLoading?: boolean;
   onLogout: () => void;
 }) {
   const [view, setView] = useState<TeacherView>({ page: "dashboard" });
@@ -1001,44 +995,6 @@ function TeacherConsole({
 
   return (
     <div className="min-h-screen page-gradient-teacher flex flex-col">
-      {/* Backend connection banner */}
-      {!actor && isActorLoading && (
-        <div className="bg-amber-100 border-b border-amber-300 px-4 py-2 text-center text-sm text-amber-800 font-ui flex items-center justify-center gap-2">
-          <svg
-            className="animate-spin h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8z"
-            />
-          </svg>
-          Connecting to server... Courses will sync once connected.
-        </div>
-      )}
-      {!actor && !isActorLoading && (
-        <div className="bg-red-100 border-b border-red-300 px-4 py-2 text-center text-sm text-red-800 font-ui flex items-center justify-center gap-2">
-          ⚠ Could not connect to server.{" "}
-          <button
-            type="button"
-            className="underline font-semibold"
-            onClick={() => window.location.reload()}
-          >
-            Click to retry
-          </button>
-        </div>
-      )}
       {/* Teacher Navbar — warm dark surface */}
       <header
         className="sticky top-0 z-40 shadow-sm"
@@ -1285,10 +1241,6 @@ function getLocalLessons(): LocalLesson[] {
     if (stored) return JSON.parse(stored) as LocalLesson[];
   } catch {}
   return [];
-}
-
-function saveLocalLessons(lessons: LocalLesson[]): void {
-  localStorage.setItem(LOCAL_LESSONS_KEY, JSON.stringify(lessons));
 }
 
 // ─── Local Lesson Completion Storage ─────────────────────────────────────────
@@ -5404,7 +5356,6 @@ function TeacherDashboard({
   setView: (v: TeacherView) => void;
 }) {
   const qc = useQueryClient();
-  const { isFetching: isActorFetching } = useActor();
   const backendCoursesQuery = useQuery({
     queryKey: ["all-courses"],
     queryFn: () => actor!.getAllCourses(),
@@ -5448,146 +5399,6 @@ function TeacherDashboard({
     queryFn: () => actor!.getLeaderboard(),
     enabled: !!actor,
   });
-
-  // Auto-sync local courses to backend
-  // Helper: publish with retries to ensure course visibility to students
-  const publishWithRetry = async (
-    courseId: bigint,
-    maxRetries = 5,
-  ): Promise<void> => {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const res = await actor!.publishCourse(courseId, true);
-        if ("ok" in res || res === undefined || res === null) return;
-        if ("err" in res) throw new Error(String((res as any).err));
-      } catch (e) {
-        if (attempt === maxRetries - 1) throw e;
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-    }
-  };
-
-  const syncLocalCourseToBackend = async (localId: number) => {
-    if (!actor) {
-      toast.error("Not connected to backend.", {
-        action: { label: "Retry", onClick: () => window.location.reload() },
-      });
-      return;
-    }
-    const lc = getLocalCourses().find((c) => c.id === localId);
-    if (!lc) return;
-    try {
-      const result = await actor.createCourse(lc.title, lc.description || "");
-      if ("ok" in result) {
-        // Remove from localStorage immediately - course is confirmed on backend
-        deleteLocalCourse(localId);
-        qc.invalidateQueries({ queryKey: ["local-courses"] });
-        // Publish with retries
-        await publishWithRetry(result.ok.id);
-        // Migrate local lessons for this course to backend
-        const localLessons1 = getLocalLessons().filter(
-          (l) => l.courseId === localId,
-        );
-        if (localLessons1.length > 0) {
-          try {
-            await actor.batchCreateLessons(
-              result.ok.id,
-              localLessons1.map((l, i) => ({
-                title: l.title,
-                content: l.content,
-                orderIndex: BigInt(l.orderIndex ?? i),
-              })),
-            );
-            saveLocalLessons(
-              getLocalLessons().filter((l) => l.courseId !== localId),
-            );
-          } catch (_e2) {
-            // non-fatal
-          }
-        }
-        qc.invalidateQueries({ queryKey: ["all-courses"] });
-        qc.refetchQueries({ queryKey: ["all-courses"] });
-        qc.refetchQueries({ queryKey: ["local-courses"] });
-        toast.success("Course synced! Students can now see it.");
-      }
-    } catch (_e) {
-      toast.error("Sync failed. Please check your connection.");
-    }
-  };
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: publishWithRetry is stable reference
-  useEffect(() => {
-    if (!actor) return;
-    const localCourses = getLocalCourses();
-    if (localCourses.length === 0) return;
-    const syncCourses = async () => {
-      let synced = 0;
-      for (const lc of localCourses) {
-        try {
-          const result = await actor.createCourse(
-            lc.title,
-            lc.description || "",
-          );
-          if ("ok" in result) {
-            // Remove from localStorage immediately - course is confirmed on backend
-            deleteLocalCourse(lc.id);
-            synced++;
-            // Publish with retries
-            await publishWithRetry(result.ok.id);
-            // Migrate local lessons for this course to backend
-            const localLessonsSync = getLocalLessons().filter(
-              (ll) => ll.courseId === lc.id,
-            );
-            if (localLessonsSync.length > 0) {
-              try {
-                await actor.batchCreateLessons(
-                  result.ok.id,
-                  localLessonsSync.map((ll, i) => ({
-                    title: ll.title,
-                    content: ll.content,
-                    orderIndex: BigInt(ll.orderIndex ?? i),
-                  })),
-                );
-                saveLocalLessons(
-                  getLocalLessons().filter((ll) => ll.courseId !== lc.id),
-                );
-              } catch (_e3) {
-                // non-fatal
-              }
-            }
-          }
-        } catch {
-          // ignore individual failures
-        }
-      }
-      if (synced > 0) {
-        qc.invalidateQueries({ queryKey: ["all-courses"] });
-        qc.invalidateQueries({ queryKey: ["local-courses"] });
-        qc.refetchQueries({ queryKey: ["all-courses"] });
-        qc.refetchQueries({ queryKey: ["local-courses"] });
-        toast.success(
-          `${synced} course(s) synced to cloud — students can now see them.`,
-        );
-      }
-      // Fix 2: Auto-publish any backend courses that are stuck as unpublished
-      try {
-        const allBackend = await actor.getAllCourses();
-        const unpublished = allBackend.filter(
-          (cws: any) => !cws.course.isPublished,
-        );
-        for (const cws of unpublished) {
-          try {
-            await actor.publishCourse(cws.course.id, true);
-          } catch {}
-        }
-        if (unpublished.length > 0) {
-          qc.invalidateQueries({ queryKey: ["all-courses"] });
-        }
-      } catch {}
-    };
-    syncCourses();
-    // biome-ignore lint/correctness/useExhaustiveDependencies: publishWithRetry is stable
-  }, [actor, qc]);
 
   const publishMutation = useMutation({
     mutationFn: async ({
@@ -5781,27 +5592,6 @@ function TeacherDashboard({
                       <span>{Number(cws.lessonCount)} lessons</span>
                       <span>{Number(cws.enrollmentCount)} students</span>
                     </div>
-                    {String(cws.course.teacherId) === "local" && (
-                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-2">
-                        <span className="text-xs text-amber-700 font-ui">
-                          ⚠ Local only — students on other devices cannot see
-                          this
-                        </span>
-                        <button
-                          type="button"
-                          className="text-xs bg-amber-500 text-white px-2 py-1 rounded font-ui hover:bg-amber-600"
-                          onClick={() =>
-                            syncLocalCourseToBackend((cws as any)._localId)
-                          }
-                          data-ocid="teacher.courses.sync.button"
-                          disabled={isActorFetching && !actor}
-                        >
-                          {isActorFetching && !actor
-                            ? "Connecting..."
-                            : "Sync to cloud"}
-                        </button>
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="flex items-center gap-2">
