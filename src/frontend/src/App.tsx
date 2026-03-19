@@ -983,6 +983,7 @@ function TeacherConsole({
   actor: ReturnType<typeof useActor>["actor"];
   onLogout: () => void;
 }) {
+  const { isFetching: actorFetching } = useActor();
   const [view, setView] = useState<TeacherView>({ page: "dashboard" });
   const [teacherEmail, setTeacherEmail] = useState<string>(() => {
     return localStorage.getItem(TEACHER_EMAIL_KEY) ?? "";
@@ -1158,7 +1159,11 @@ function TeacherConsole({
         )}
         {view.page === "students" && <StudentRosterPage />}
         {view.page === "create-course" && (
-          <CreateCoursePage actor={actor} setView={setView} />
+          <CreateCoursePage
+            actor={actor}
+            actorFetching={actorFetching}
+            setView={setView}
+          />
         )}
       </main>
 
@@ -5707,9 +5712,11 @@ function TeacherDashboard({
 // ─── Create Course Page ───────────────────────────────────────────────────────
 function CreateCoursePage({
   actor,
+  actorFetching,
   setView,
 }: {
   actor: ReturnType<typeof useActor>["actor"];
+  actorFetching?: boolean;
   setView: (v: TeacherView) => void;
 }) {
   const qc = useQueryClient();
@@ -5922,6 +5929,13 @@ function CreateCoursePage({
       </Card>
 
       {/* Actions */}
+      {!actor && (
+        <p className="text-sm text-amber-600 text-center">
+          {actorFetching
+            ? "Connecting to server..."
+            : "Waiting for server connection..."}
+        </p>
+      )}
       <div className="flex items-center gap-3 justify-end">
         <Button
           variant="outline"
@@ -5932,7 +5946,7 @@ function CreateCoursePage({
         </Button>
         <Button
           onClick={() => createMutation.mutate()}
-          disabled={!title.trim() || createMutation.isPending}
+          disabled={!title.trim() || createMutation.isPending || !actor}
           data-ocid="create_course.submit_button"
           style={{ background: bannerColor, color: "white" }}
           className="hover:opacity-90 transition-opacity min-w-[140px]"
